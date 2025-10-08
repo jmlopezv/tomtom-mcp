@@ -174,26 +174,36 @@ The Docker setup is also configured to use this HTTP mode with the same authenti
 ```bash
 # Option 1: Using docker run directly
 # Note: Genesis is the default backend (same as npm package)
-docker run -p 3000:3000 -e TOMTOM_API_KEY=your_key ghcr.io/tomtom-international/tomtom-mcp:latest
+docker run -p 3000:3000 ghcr.io/tomtom-international/tomtom-mcp:latest
 
 # To use Orbis backend instead of default Genesis:
-docker run -p 3000:3000 -e TOMTOM_API_KEY=your_key -e MAPS=orbis ghcr.io/tomtom-international/tomtom-mcp:latest
+docker run -p 3000:3000 -e MAPS=orbis ghcr.io/tomtom-international/tomtom-mcp:latest
 
 # Option 2: Using Docker Compose (recommended for development)
 # Clone the repository first
 git clone https://github.com/tomtom-international/tomtom-mcp.git
 cd tomtom-mcp
 
-# Edit docker-compose.yml to add your API key or set it as an environment variable
-export TOMTOM_API_KEY=your_key
-
 # Start the service (uses Genesis backend by default)
 docker compose up
 ```
 
 ```bash
-# Get help
-npx @tomtom-org/tomtom-mcp@latest --help
+curl --location 'http://localhost:3000/mcp' \
+--header 'Accept: application/json,text/event-stream' \
+--header 'Authorization: Bearer <API KEY>' \
+--header 'Content-Type: application/json' \
+--data '{
+  "method": "tools/call",
+  "params": {
+    "name": "tomtom-geocode",
+    "arguments": {
+        "query": "Amsterdam Central Station"
+    }
+  },
+  "jsonrpc": "2.0",
+  "id": 24
+}'
 ```
 
 ---
