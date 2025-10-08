@@ -32,7 +32,7 @@ The **TomTom MCP Server** simplifies geospatial development by providing seamles
 ## Quick Start
 
 ### Prerequisites
-- Node.js 22.x (strict requirement for dynamic map tool, other tools may work with older versions)
+- Node.js 22.x (strict requirement for dynamic map tool, other tools may work with older/newer versions)
 - TomTom API key
 - OS-level dependencies for MapLibre GL Native:
   - **macOS**: 
