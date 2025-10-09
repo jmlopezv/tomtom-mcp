@@ -5,7 +5,8 @@ This guide explains how to configure Cursor to use the TomTom MCP Server for loc
 ## Prerequisites
 
 - Cursor installed
-- Node.js 22+
+- Node.js 22+ (For STDIO)
+- Docker Setup Required (For HTTP)
 - A valid [TomTom API key](https://developer.tomtom.com/)
 
 ## Setup

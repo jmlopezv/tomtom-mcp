@@ -5,7 +5,8 @@ This guide explains how to configure VS Code to use the TomTom MCP Server for lo
 ## Prerequisites
 
 - VS Code installed with Copilot
-- Node.js 22+
+- Node.js 22+ (For STDIO)
+- Docker Setup Required (For HTTP)
 - A valid [TomTom API key](https://developer.tomtom.com/)
 
 ## Setup
