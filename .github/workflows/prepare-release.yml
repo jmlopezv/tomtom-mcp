@@ -196,5 +196,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           exclude-tags: '^v[0-9]+\.[0-9]+\.[0-9]+$'
           use-regex: true
-          keep-n-tagged: 5
+          keep-n-tagged: 20
           log-level: info
