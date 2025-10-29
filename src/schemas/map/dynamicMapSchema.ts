@@ -58,18 +58,9 @@ const markerSchema = z.object({
     ),
 });
 
-// Route point schema (flexible coordinate format)
-const routePointSchema = z.union([
-  coordinateSchema,
-  z.array(z.number()).length(2).describe("Coordinate as [lat, lon] array"),
-  z.object({
-    coordinates: z.array(z.number()).length(2).describe("Coordinates as {coordinates: [lat, lon]}"),
-  }),
-]);
-
 // Route schema
 const routeSchema = z.object({
-  points: z.array(routePointSchema).describe("Array of route points in various coordinate formats"),
+  points: z.array(coordinateSchema).describe("Array of route points in various coordinate formats"),
   name: z.string().optional().describe("Optional route name"),
   color: z.string().optional().describe("Route color in hex format (e.g., '#0066cc')"),
 });
