@@ -360,7 +360,7 @@ Open issues on the [GitHub repo](https://github.com/tomtom-internal/tomtom-mcp/i
 
 ## Security
 
-Please see our [Security Policy](SECURITY.md) for information on reporting security vulnerabilities and our security practices.
+Please see our [Security Policy](https://github.com/tomtom-international/.github/blob/main/SECURITY.md) for information on reporting security vulnerabilities and our security practices.
 
 ## License
 
