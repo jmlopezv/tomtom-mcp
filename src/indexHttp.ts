@@ -21,7 +21,6 @@ import { randomUUID } from "node:crypto";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { runWithSessionContext, setHttpMode } from "./services/base/tomtomClient";
-import { version } from "node:os";
 import { VERSION } from "./version";
 
 // ============================================================================
