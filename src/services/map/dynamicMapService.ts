@@ -16,20 +16,21 @@
 
 import { tomtomClient, validateApiKey, CONFIG } from "../base/tomtomClient";
 import axios from "axios";
-import { VERSION } from "../../version";
 import { logger } from "../../utils/logger";
 import { DynamicMapOptions, DynamicMapResponse } from "./dynamicMapTypes";
 import { getRoute, getMultiWaypointRoute } from "../routing/routingService";
 import { RouteOptions } from "../routing/types";
 
-// Conditionally import MapLibre GL Native, Canvas, and Turf.js
-// These will be undefined if the packages are not installed
-let mbgl: any;
-let createCanvas: any;
-let turf: any;
+// Import geometry and GeoJSON utilities
+import { calculateEnhancedBounds, generateCirclePoints, extractCoordinates } from './geometryUtils';
 
-// Only attempt to import these dependencies if dynamic maps are enabled
-if (process.env.ENABLE_DYNAMIC_MAPS !== "false") {
+  // Conditionally import MapLibre GL Native and Canvas
+  // These will be undefined if the packages are not installed
+  let mbgl: any;
+  let createCanvas: any;
+  
+  // Only attempt to import these dependencies if dynamic maps are enabled
+  if (process.env.ENABLE_DYNAMIC_MAPS !== "false") {
   try {
     // Dynamic imports for MapLibre GL Native and Canvas
     const importMapLibre = async () => {
@@ -50,23 +51,13 @@ if (process.env.ENABLE_DYNAMIC_MAPS !== "false") {
       }
     };
     
-    const importTurf = async () => {
-      try {
-        return await import("@turf/turf");
-      } catch (error) {
-        logger.warn("⚠️ Turf.js not available: dynamic maps will not function");
-        return undefined;
-      }
-    };
-    
     // Execute imports immediately and synchronously
-    Promise.all([importMapLibre(), importCanvas(), importTurf()])
-      .then(([maplibreModule, canvasModule, turfModule]) => {
+    Promise.all([importMapLibre(), importCanvas()])
+      .then(([maplibreModule, canvasModule]) => {
         mbgl = maplibreModule?.default;
         createCanvas = canvasModule?.createCanvas;
-        turf = turfModule;
         
-        if (mbgl && createCanvas && turf) {
+        if (mbgl && createCanvas) {
           logger.info("✅ Dynamic map dependencies loaded successfully");
         } else {
           logger.warn("⚠️ Some dynamic map dependencies could not be loaded");
@@ -158,268 +149,6 @@ function validateCoordinate(value: any, type: string): number {
 
   return num;
 }
-
-/**
- * Extract and validate coordinates from various formats
- */
-function extractCoordinates(
-  item: any,
-  index: number | string,
-  type: string = "marker"
-): { lat: number; lon: number } | null {
-  let lat: number | undefined, lon: number | undefined;
-
-  if (Array.isArray(item)) {
-    // Handle array format [lat, lon]
-    if (item.length >= 2) {
-      lat = item[0];
-      lon = item[1];
-    }
-  } else if (item.coordinates && Array.isArray(item.coordinates)) {
-    // Handle {coordinates: [lat, lon]} format
-    if (item.coordinates.length >= 2) {
-      lat = item.coordinates[0];
-      lon = item.coordinates[1];
-    }
-  } else if (item.lat !== undefined && item.lon !== undefined) {
-    // Handle {lat: x, lon: y} format (standard)
-    lat = item.lat;
-    lon = item.lon;
-  }
-
-  if (lat === undefined || lon === undefined) {
-    logger.warn(`❌ Could not extract coordinates from ${type} ${index}`);
-    return null;
-  }
-
-  try {
-    const validLat = validateCoordinate(lat, "latitude");
-    const validLon = validateCoordinate(lon, "longitude");
-    return { lat: validLat, lon: validLon };
-  } catch (error: any) {
-    logger.warn(`❌ Invalid coordinates for ${type} ${index}: ${error.message}`);
-    return null;
-  }
-}
-
-/**
- * Calculate optimal zoom level using web mercator projection math
- */
-function calculateOptimalZoom(
-  bounds: any,
-  mapWidth: number,
-  mapHeight: number,
-  paddingPixels: number = 80
-): number {
-  const { north, south, east, west } = bounds;
-
-  // Calculate the effective map dimensions after padding
-  const effectiveWidth = mapWidth - paddingPixels * 2;
-  const effectiveHeight = mapHeight - paddingPixels * 2;
-
-  // Calculate spans in degrees
-  const latSpan = north - south;
-  const lngSpan = east - west;
-
-  // Web Mercator zoom calculation
-  const latRad1 = (south * Math.PI) / 180;
-  const latRad2 = (north * Math.PI) / 180;
-  const latZoom = Math.log2(
-    (effectiveHeight * (180 / Math.PI)) /
-      (Math.log(Math.tan(latRad2 / 2 + Math.PI / 4)) -
-        Math.log(Math.tan(latRad1 / 2 + Math.PI / 4)))
-  );
-
-  // For longitude: simpler calculation
-  const lngZoom = Math.log2((effectiveWidth * 360) / (lngSpan * 256));
-
-  // Use the more restrictive zoom (smaller value)
-  const zoom = Math.min(latZoom, lngZoom);
-
-  // Clamp to reasonable bounds and add buffer for marker visibility
-  const finalZoom = Math.max(1, Math.min(17, zoom - 0.1));
-
-  return finalZoom;
-}
-
-/**
- * Enhanced bounds calculation using Turf.js with smarter buffering
- */
-function calculateEnhancedBounds(
-  markers: any[],
-  routes: any[],
-  mapWidth: number,
-  mapHeight: number,
-  polygons: any[] = []
-): any {
-  const features: any[] = [];
-  let totalPoints = 0;
-
-  // Add markers to feature collection
-  if (markers && markers.length > 0) {
-    markers.forEach((marker, index) => {
-      const coords = extractCoordinates(marker, index, "marker");
-      if (coords) {
-        features.push(turf.point([coords.lon, coords.lat]));
-        totalPoints++;
-      }
-    });
-  }
-
-  // Add route points to feature collection
-  if (routes && routes.length > 0) {
-    routes.forEach((route, routeIndex) => {
-      if (Array.isArray(route)) {
-        // Legacy format: route is array of coordinates
-        route.forEach((point, pointIndex) => {
-          const coords = extractCoordinates(point, `${routeIndex}-${pointIndex}`, "route point");
-          if (coords) {
-            features.push(turf.point([coords.lon, coords.lat]));
-            totalPoints++;
-          }
-        });
-      } else if (route.points && Array.isArray(route.points)) {
-        // New format: route is object with points array
-        route.points.forEach((point: any, pointIndex: number) => {
-          const coords = extractCoordinates(point, `${routeIndex}-${pointIndex}`, "route point");
-          if (coords) {
-            features.push(turf.point([coords.lon, coords.lat]));
-            totalPoints++;
-          }
-        });
-      }
-    });
-  }
-
-  // Add polygon coordinates to feature collection (Phase 2: Multi-polygon support)
-  if (polygons && polygons.length > 0) {
-    polygons.forEach((polygon, polygonIndex) => {
-      // Handle polygon coordinates
-      if (polygon.coordinates && Array.isArray(polygon.coordinates)) {
-        polygon.coordinates.forEach((coord: [number, number], coordIndex: number) => {
-          if (Array.isArray(coord) && coord.length >= 2) {
-            const [lon, lat] = coord;
-            if (typeof lon === "number" && typeof lat === "number") {
-              features.push(turf.point([lon, lat]));
-              totalPoints++;
-            }
-          }
-        });
-      }
-
-      // Handle circle center (circles also contribute to bounds)
-      if (
-        polygon.center &&
-        typeof polygon.center.lat === "number" &&
-        typeof polygon.center.lon === "number"
-      ) {
-        features.push(turf.point([polygon.center.lon, polygon.center.lat]));
-        totalPoints++;
-
-        // Add points at circle edges for better bounds calculation
-        if (polygon.radius && polygon.radius > 0) {
-          const radiusKm = polygon.radius / 1000; // Convert meters to km
-          const options = { steps: 8, units: "kilometers" as const };
-          const circleFeature = turf.circle(
-            [polygon.center.lon, polygon.center.lat],
-            radiusKm,
-            options
-          );
-          const coords = circleFeature.geometry.coordinates[0];
-          coords.forEach((coord: any) => {
-            if (Array.isArray(coord) && coord.length >= 2) {
-              features.push(turf.point([coord[0], coord[1]]));
-              totalPoints++;
-            }
-          });
-        }
-      }
-    });
-  }
-
-  if (features.length === 0) {
-    throw new Error("No valid coordinates found to calculate bounds");
-  }
-
-  // Create feature collection and get initial bounds
-  const collection = turf.featureCollection(features);
-  const rawBbox = turf.bbox(collection);
-  const [west, south, east, north] = rawBbox;
-
-  // Calculate geographic spans
-  const latSpan = north - south;
-  const lngSpan = east - west;
-  const maxSpan = Math.max(latSpan, lngSpan);
-  const markerCount = markers ? markers.length : 0;
-
-  // Intelligent buffer calculation (adapted from original implementation)
-  let bufferKm: number;
-
-  if (markerCount === 1) {
-    bufferKm = Math.max(5, maxSpan * 111 * 0.3);
-  } else if (maxSpan < 0.001) {
-    bufferKm = 1;
-  } else if (maxSpan < 0.01) {
-    bufferKm = Math.max(2, maxSpan * 111 * 0.5);
-  } else if (maxSpan < 0.1) {
-    bufferKm = Math.max(3, maxSpan * 111 * 0.4);
-  } else if (maxSpan < 1.0) {
-    bufferKm = Math.max(10, maxSpan * 111 * 0.3);
-  } else if (maxSpan < 5.0) {
-    bufferKm = Math.max(50, maxSpan * 111 * 0.35);
-  } else if (maxSpan < 10.0) {
-    bufferKm = Math.max(75, maxSpan * 111 * 0.3);
-  } else {
-    bufferKm = Math.max(100, maxSpan * 111 * 0.25);
-  }
-
-  // Extra buffer for routes and multiple markers
-  const hasRoutes = routes && routes.length > 0;
-  if (hasRoutes && markerCount > 1) {
-    bufferKm *= 1.5;
-  }
-
-  if (markerCount > 3) {
-    bufferKm *= 1.2;
-  }
-
-  // Apply buffer using Turf.js
-  const bufferedCollection = turf.buffer(collection, bufferKm, { units: "kilometers" });
-  if (!bufferedCollection) {
-    throw new Error("Failed to calculate buffered bounds");
-  }
-  const bufferedBbox = turf.bbox(bufferedCollection);
-  const [buffWest, buffSouth, buffEast, buffNorth] = bufferedBbox;
-
-  const bounds = {
-    west: buffWest,
-    south: buffSouth,
-    east: buffEast,
-    north: buffNorth,
-  };
-
-  // Calculate center point
-  const centerLng = (bounds.west + bounds.east) / 2;
-  const centerLat = (bounds.south + bounds.north) / 2;
-  const center = [centerLng, centerLat];
-
-  // Calculate optimal padding in pixels
-  let paddingPixels: number;
-  if (markerCount === 1) {
-    paddingPixels = Math.min(mapWidth, mapHeight) * 0.15;
-  } else if (markerCount <= 3) {
-    paddingPixels = Math.min(mapWidth, mapHeight) * 0.12;
-  } else {
-    paddingPixels = Math.min(mapWidth, mapHeight) * 0.1;
-  }
-  paddingPixels = Math.max(50, Math.min(150, paddingPixels));
-
-  // Calculate zoom using enhanced algorithm
-  const zoom = calculateOptimalZoom(bounds, mapWidth, mapHeight, paddingPixels);
-
-  return { bounds, center, zoom };
-}
-
 /**
  * Render a dynamic map using MapLibre GL Native (adapted from original renderMap function)
  */
@@ -559,14 +288,27 @@ async function renderMapWithMapLibre(options: any): Promise<Buffer> {
               return null;
             }
 
-            // Convert circle to polygon using turf
-            const radiusKm = polygon.radius / 1000; // Convert meters to km
-            const options = { steps: 64, units: "kilometers" as const };
-            const circleFeature = turf.circle(
-              [polygon.center.lon, polygon.center.lat],
-              radiusKm,
-              options
+            // Convert circle to polygon using our utilities
+            const circlePoints = generateCirclePoints(
+              polygon.center.lat,
+              polygon.center.lon,
+              polygon.radius,
+              64 // steps
             );
+            
+            // Create polygon coordinates structure
+            const polygonCoordinates = circlePoints.map(point => [point.lon, point.lat]);
+            // Close the polygon by adding the first point again
+            polygonCoordinates.push(polygonCoordinates[0]);
+            
+            const circleFeature = {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [polygonCoordinates]
+              },
+              properties: {}
+            };
 
             return {
               type: "Feature",
@@ -1047,8 +789,8 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
 
   try {
     // Check if all required dependencies are available
-    if (!mbgl || !createCanvas || !turf) {
-      throw new Error("Dynamic map dependencies not available. Install @maplibre/maplibre-gl-native, canvas, and @turf/turf to enable this feature, or use Docker for a pre-configured environment.");
+    if (!mbgl || !createCanvas) {
+      throw new Error("Dynamic map dependencies not available. Install @maplibre/maplibre-gl-native and canvas to enable this feature, or use Docker for a pre-configured environment.");
     }
 
     // Apply default options
