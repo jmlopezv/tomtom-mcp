@@ -27,47 +27,47 @@
   },
   "tools": [
     {
-      "name": "geocode",
+      "name": "tomtom-geocode",
       "description": "Convert street addresses to coordinates (does not support points of interest)"
     },
     {
-      "name": "reverse-geocode",
+      "name": "tomtom-reverse-geocode",
       "description": "Convert coordinates to addresses"
     },
     {
-      "name": "fuzzy-search",
+      "name": "tomtom-fuzzy-search",
       "description": "Typo-tolerant search for addresses, points of interest, and geographies"
     },
     {
-      "name": "poi-search",
+      "name": "tomtom-poi-search",
       "description": "Find specific business categories"
     },
     {
-      "name": "nearby",
+      "name": "tomtom-nearby",
       "description": "Discover services within a radius"
     },
     {
-      "name": "routing",
+      "name": "tomtom-routing",
       "description": "Calculate optimal routes between locations"
     },
     {
-      "name": "waypoint-routing",
+      "name": "tomtom-waypoint-routing",
       "description": "Multi-stop route planning Routing API"
     },
     {
-      "name": "reachable-range",
+      "name": "tomtom-reachable-range",
       "description": "Determine the area reachable within a specified time or driving distance"
     },
     {
-      "name": "traffic",
+      "name": "tomtom-traffic",
       "description": "Look up traffic incidents in an area (incidents, dangerous conditions, closures, etc.)"
     },
     {
-      "name": "static-map",
+      "name": "tomtom-static-map",
       "description": "Generate custom map images"
     },
     {
-      "name": "dynamic-map",
+      "name": "tomtom-dynamic-map",
       "description": "Advanced map rendering with custom markers, routes, and traffic visualization (requires MapLibre dependencies unless using Docker)"
     }
   ],
