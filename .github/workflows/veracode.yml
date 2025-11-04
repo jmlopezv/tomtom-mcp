@@ -30,7 +30,7 @@ jobs:
 
       - name: Veracode Policy Scan (main)
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        uses: veracode/veracode-uploadandscan-action@0.2.6
+        uses: veracode/veracode-uploadandscan-action@0.2.9
         with:
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
