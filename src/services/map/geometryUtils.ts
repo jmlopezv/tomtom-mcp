@@ -110,8 +110,11 @@ export function calculateOptimalZoom(
   // Use the more restrictive zoom
   const zoom = Math.min(latZoom, lngZoom);
 
-  // Clamp to reasonable bounds and add slight zoom out for better view
-  return Math.max(1, Math.min(17, zoom - 0.1));
+  // Add additional zoom out factor for better view
+  const zoomOutFactor = 0.5;  // Increased from 0.1 to 0.5 for better overview
+
+  // Clamp to reasonable bounds after applying zoom out
+  return Math.max(1, Math.min(17, zoom - zoomOutFactor));
 }
 
 /**
@@ -195,27 +198,53 @@ export function calculateEnhancedBounds(
   const maxSpan = Math.max(latSpan, lngSpan);
   const markerCount = markers ? markers.length : 0;
 
-  // Calculate buffer (similar to original logic but simplified)
+  // Calculate buffer with enhanced padding
   let bufferDegrees: number;
+  
+  // Base buffer calculation
   if (markerCount === 1) {
-    bufferDegrees = maxSpan * 0.3;
-  } else if (maxSpan < 0.001) {
-    bufferDegrees = 0.01;
-  } else if (maxSpan < 0.01) {
+    // Single marker needs more padding for better visibility
     bufferDegrees = maxSpan * 0.5;
+  } else if (maxSpan < 0.001) {
+    // Very small area needs significant padding
+    bufferDegrees = 0.05;
+  } else if (maxSpan < 0.01) {
+    // Small area needs more relative padding
+    bufferDegrees = maxSpan * 0.8;
+  } else if (maxSpan < 0.1) {
+    // Medium area needs moderate padding
+    bufferDegrees = maxSpan * 0.6;
   } else {
-    bufferDegrees = maxSpan * 0.25;
+    // Larger areas need proportional padding
+    bufferDegrees = maxSpan * 0.4;
   }
 
-  // Apply extra buffer for routes and multiple markers
+  // Apply route-specific padding
   const hasRoutes = routes && routes.length > 0;
-  if (hasRoutes && markerCount > 1) {
-    bufferDegrees *= 1.5;
+  if (hasRoutes) {
+    if (markerCount > 1) {
+      // Routes with multiple points need extra room for route visualization
+      bufferDegrees *= 1.8;
+    } else {
+      // Routes with single marker still need some extra padding
+      bufferDegrees *= 1.5;
+    }
   }
 
-  if (markerCount > 3) {
-    bufferDegrees *= 1.2;
+  // Apply polygon-specific padding
+  const hasPolygons = polygons && polygons.length > 0;
+  if (hasPolygons) {
+    bufferDegrees *= 1.3;  // Extra space for polygon visualization
   }
+
+  // Scale based on marker density
+  if (markerCount > 3) {
+    bufferDegrees *= 1.4;  // More space for dense marker clusters
+  }
+
+  // Ensure minimum buffer for better visual appeal
+  const minBuffer = maxSpan * 0.15;
+  bufferDegrees = Math.max(bufferDegrees, minBuffer);
 
   // Apply buffer to bounds
   const bufferedBounds: Bounds = {
