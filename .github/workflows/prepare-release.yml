@@ -28,6 +28,11 @@ jobs:
           version_number=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
           yq -i -o=json ".version = \"${version_number}\"" package.json
 
+      - name: Update manifest.json
+        run: |
+          version_number=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
+          yq -i -o=json ".version = \"${version_number}\"" manifest.json
+
       - name: Update version.ts
         run: |
           version_number=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
