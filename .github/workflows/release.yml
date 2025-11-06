@@ -59,14 +59,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get latest SHA commit from the main branch
+      - name: Get latest main SHA tag from package repository
         id: get-sha
         run: |
-          LATEST_SHA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/main" | \
-            yq -r '.sha' | cut -c1-7)
-          echo "latest_sha=$LATEST_SHA" >> $GITHUB_OUTPUT
-          echo "Latest SHA: $LATEST_SHA"
+          MAIN_SHA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ github.repository }}/versions" | \
+            yq '.[] | select(.metadata.container.tags | contains(["main"])) | .metadata.container.tags[]' | grep '^sha-')
+          echo "main_sha=$MAIN_SHA" >> $GITHUB_OUTPUT
+          echo "Main SHA: $MAIN_SHA"
 
       - name: Pull, retag and push release image
         run: |
@@ -74,7 +75,7 @@ jobs:
           REPO_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
 
           # Source image with SHA tag
-          SOURCE_IMAGE="${{ env.REGISTRY }}/${REPO_NAME_LOWER}:sha-${{ steps.get-sha.outputs.latest_sha }}"
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${REPO_NAME_LOWER}:sha-${{ steps.get-sha.outputs.main_sha }}"
           # Target image with release tag
           TARGET_IMAGE="${{ env.REGISTRY }}/${REPO_NAME_LOWER}:${{ needs.get-version.outputs.version }}"
           # Latest tag
