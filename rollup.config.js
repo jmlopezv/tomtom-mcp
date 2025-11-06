@@ -46,7 +46,6 @@ export default [
       // Static imports for dynamic maps
       '@maplibre/maplibre-gl-native',
       'canvas',
-      '@turf/turf',
       // Validation
       'zod',
       // Environment
@@ -96,7 +95,6 @@ export default [
       // Static imports for dynamic maps
       '@maplibre/maplibre-gl-native',
       'canvas',
-      '@turf/turf',
       // Validation
       'zod',
       // Environment
