@@ -284,7 +284,10 @@ describe("Dynamic Map Service", () => {
     });
 
     it("should throw error when TomTom API is not available", async () => {
-      mockedTomtomClient.get.mockRejectedValueOnce(new Error("Connection refused"));
+      // Mock both copyright and style API calls to fail
+      mockedTomtomClient.get
+        .mockRejectedValueOnce(new Error("Connection refused")) // Copyright call fails
+        .mockRejectedValueOnce(new Error("Connection refused")); // Style call fails
 
       const options = {
         markers: [{ lat: 52.374, lon: 4.8897 }],
@@ -305,12 +308,17 @@ describe("Dynamic Map Service", () => {
     });
 
     it("should handle TomTom API error responses", async () => {
-      mockedTomtomClient.get.mockRejectedValueOnce({
+      const apiError = {
         response: {
           status: 401,
           data: "Unauthorized: Invalid API key",
         },
-      });
+      };
+      
+      // Mock both copyright and style API calls to fail
+      mockedTomtomClient.get
+        .mockRejectedValueOnce(apiError) // Copyright call fails
+        .mockRejectedValueOnce(apiError); // Style call fails
 
       const options = {
         markers: [{ lat: 52.374, lon: 4.8897 }],
