@@ -553,8 +553,6 @@ async function renderMapWithMapLibre(options: any): Promise<Buffer> {
           },
         });
 
-        map.addImage
-
         // Add marker labels if enabled - enhanced with priority-based styling
         if (showLabels) {
           // Create separate label layers for each priority level for better browser compatibility
