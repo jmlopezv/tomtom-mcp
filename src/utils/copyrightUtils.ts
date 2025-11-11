@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type { CanvasRenderingContext2D } from "canvas";
 import { tomtomClient } from "../services/base/tomtomClient";
 import { logger } from "./logger";
 
