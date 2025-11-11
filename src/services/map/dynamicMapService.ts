@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { tomtomClient, validateApiKey, CONFIG } from "../base/tomtomClient";
+import { tomtomClient, validateApiKey } from "../base/tomtomClient";
 import axios from "axios";
 import { logger } from "../../utils/logger";
+import { fetchCopyrightCaption } from "../../utils/copyrightUtils";
 import { DynamicMapOptions, DynamicMapResponse } from "./dynamicMapTypes";
 import { getRoute, getMultiWaypointRoute } from "../routing/routingService";
 import { RouteOptions } from "../routing/types";
@@ -129,40 +130,6 @@ const DEFAULT_DYNAMIC_MAP_OPTIONS = {
   showLabels: false,
   routeInfoDetail: "basic" as const,
 };
-
-/**
- * Fetch dynamic copyright text based on map style
- */
-async function fetchCopyrightCaption(useOrbis: boolean): Promise<string> {
-  try {
-    let copyrightUrl: string;
-    let requestParams: any = {};
-    
-    if (useOrbis) {
-      copyrightUrl = 'maps/orbis/copyrights/caption.json';
-      requestParams = { apiVersion: 1 };
-    } else {
-      copyrightUrl = 'map/2/copyrights/caption.json';
-      // No additional params needed for Genesis
-    }
-
-    const response = await tomtomClient.get(copyrightUrl, {
-      responseType: 'json',
-      params: requestParams
-    });
-
-    if (response.data && response.data.copyrightsCaption) {
-      return response.data.copyrightsCaption;
-    } else {
-      // Fallback to static text if API call fails
-      return useOrbis ? '©TomTom, ©OpenStreetMap' : '©TomTom';
-    }
-  } catch (error: any) {
-    logger.warn(`Failed to fetch copyright caption: ${error.message}. Using fallback.`);
-    // Fallback to static text if API call fails
-    return useOrbis ? '©TomTom, ©OpenStreetMap' : '©TomTom';
-  }
-}
 
 /**
  * Validate and sanitize coordinate values
