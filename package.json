@@ -76,6 +76,7 @@
     "vitest": "^3.2.4"
   },
   "optionalDependencies": {
+    "@maplibre/maplibre-gl-native": "^6.2.0",
     "@rollup/rollup-linux-x64-gnu": "4.9.5"
   },
   "engines": {
