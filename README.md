@@ -110,7 +110,7 @@ npx @tomtom-org/tomtom-mcp@latest
 #### Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|| 
+|----------|-------------|---------|
 | `TOMTOM_API_KEY` | Your TomTom API key | - |
 | `MAPS` | Backend to use: `GENESIS` (TomTom Maps) or `ORBIS` (TomTom Orbis Maps) | `GENESIS` |
 | `ENABLE_DYNAMIC_MAPS` | Enable or disable the dynamic maps feature | `false` |
