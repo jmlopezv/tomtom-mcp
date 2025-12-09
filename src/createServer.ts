@@ -25,7 +25,7 @@ import { createMapOrbisTools } from "./tools/mapOrbisTools";
 import { createSearchOrbisTools } from "./tools/searchOrbisTools";
 import { createRoutingOrbisTools } from "./tools/routingOrbisTools";
 import { createTrafficOrbisTools } from "./tools/trafficOrbisTools";
-import { VERSION } from "./version";
+import { readVersion } from "./utils/readVersion";
 
 /**
  * Configuration interface for server creation
@@ -66,8 +66,9 @@ export function createServer(config?: ServerConfig): McpServer {
   }
 
   const serverName = isOrbis ? "TomTom Orbis MCP Server" : "TomTom Genesis MCP Server";
+  const version = readVersion();
 
-  logger.info({ server_name: serverName, maps_backend: isOrbis ? "Orbis" : "Genesis" }, "Initializing MCP server");
+  logger.info(`Initializing ${serverName} ${version} (Maps: ${isOrbis ? "Orbis" : "Genesis"})`);
 
   // Validate API key if provided in config, otherwise use environment validation
   if (config?.apiKey) {
@@ -78,7 +79,7 @@ export function createServer(config?: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: serverName,
-    version: VERSION,
+    version: readVersion(),
   });
 
   // Note: Session-specific API key context is managed at the HTTP request level

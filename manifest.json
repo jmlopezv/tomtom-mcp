@@ -111,7 +111,6 @@
     ],
     "runtimes": {
       "node": ">=22.0.0"
-    },
-    "notes": "For Claude Desktop, turn OFF 'Use Built-in Node.js for MCP' in advanced settings."
+    }
   }
 }
