@@ -52,7 +52,7 @@ Keeping local deployments of the TomTom MCP Server up-to-date is the responsibil
   - **macOS**: 
     ```bash
     # Install required dependencies via Homebrew
-    brew install pkg-config cairo pango libpng jpeg giflib librsvg webp libuv icu4c jpeg-turbo glfw
+    brew install webp libuv icu4c jpeg-turbo glfw
     brew link icu4c --force
     ```
   - **Ubuntu/Debian**: 
