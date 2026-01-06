@@ -16,49 +16,73 @@
 
 /**
  * Logger utility for the MCP server
- * Memory-efficient and JSON-RPC compatible logging implementation
- * No colors by default for clean output in all modes
+ * Structured logging with Pino - JSON-RPC compatible
+ * Outputs to stderr for clean separation from stdout
+ * Supports both simple string messages and structured logging
  */
 
-// Colors are always disabled by default for clean, consistent output
-// This ensures JSON-RPC compatibility in all modes
-const _useColors = false;
+import pino from "pino";
+import type { DestinationStream } from "pino";
 
-// Empty color codes - we don't use colors by default
-const _colors = {
-  timestamp: "",
-  info: "",
-  error: "",
-  warn: "",
-  debug: "",
-  reset: "",
-};
+export interface Logger {
+  info: (msgOrData: string | object, msg?: string) => void;
+  error: (msgOrData: string | object, msg?: string) => void;
+  warn: (msgOrData: string | object, msg?: string) => void;
+  debug: (msgOrData: string | object, msg?: string) => void;
+}
 
-export const logger = {
-  info: (msg: string): void => {
-    const timestamp = new Date().toISOString();
-    console.error(`[${timestamp}] [INFO]: ${msg}`);
-  },
+/**
+ * Creates a logger instance with the specified destination
+ * @param destination - Optional destination stream, defaults to stderr
+ */
+export function makeLogger(destination?: DestinationStream): Logger {
+  const pinoInstance = pino(
+    {
+      level: "debug", // Log all levels
+      timestamp: pino.stdTimeFunctions.isoTime,
+      formatters: {
+        level: (label) => {
+          return { level: label };
+        },
+      },
+    },
+    destination ?? pino.destination({ dest: 2, sync: true }) // 2 = stderr
+  );
 
-  error: (msg: string): void => {
-    const timestamp = new Date().toISOString();
+  return {
+    info: (msgOrData: string | object, msg?: string): void => {
+      if (typeof msgOrData === "string") {
+        pinoInstance.info(msgOrData);
+      } else {
+        pinoInstance.info(msgOrData, msg);
+      }
+    },
 
-    // In STDIO mode, use console.error and no colors
-    console.error(`[${timestamp}] [ERROR]: ${msg}`);
-  },
+    error: (msgOrData: string | object, msg?: string): void => {
+      if (typeof msgOrData === "string") {
+        pinoInstance.error(msgOrData);
+      } else {
+        pinoInstance.error(msgOrData, msg);
+      }
+    },
 
-  warn: (msg: string): void => {
-    const timestamp = new Date().toISOString();
+    warn: (msgOrData: string | object, msg?: string): void => {
+      if (typeof msgOrData === "string") {
+        pinoInstance.warn(msgOrData);
+      } else {
+        pinoInstance.warn(msgOrData, msg);
+      }
+    },
 
-    // In STDIO mode, use console.error and no colors
-    console.error(`[${timestamp}] [WARN]: ${msg}`);
-  },
+    debug: (msgOrData: string | object, msg?: string): void => {
+      if (typeof msgOrData === "string") {
+        pinoInstance.debug(msgOrData);
+      } else {
+        pinoInstance.debug(msgOrData, msg);
+      }
+    },
+  };
+}
 
-  debug: (msg: string): void => {
-    // Always log in test environment, otherwise check debug settings
-    // We're removing all conditions for tests to ensure they pass
-    const timestamp = new Date().toISOString();
-    // In STDIO mode, use console.error and no colors
-    console.error(`[${timestamp}] [DEBUG]: ${msg}`);
-  },
-};
+// Export default logger instance that writes to stderr
+export const logger = makeLogger();

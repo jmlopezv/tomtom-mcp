@@ -52,7 +52,7 @@ Keeping local deployments of the TomTom MCP Server up-to-date is the responsibil
   - **macOS**: 
     ```bash
     # Install required dependencies via Homebrew
-    brew install webp libuv webp icu4c jpeg-turbo glfw
+    brew install webp libuv icu4c jpeg-turbo glfw
     brew link icu4c --force
     ```
   - **Ubuntu/Debian**: 
@@ -316,7 +316,16 @@ src/
 
 If you encounter issues with native dependencies (especially for the dynamic map tool):
 
-1. **Use Docker instead**: Our Docker image includes all required dependencies pre-configured:
+#### Option 1 – Check your NPM settings
+
+If you have the `ignore-scripts` setting enabled (`npm config get ignore-scripts` returns `true`), some native dependencies required by NPM packages may not be installed automatically. This can cause build or runtime errors, especially for packages that rely on native modules.  
+**Solution:** Consider setting `ignore-scripts` to `false` by running:
+```bash
+npm config set ignore-scripts false
+```
+
+#### Option 2 – Run the MCP server via Docker
+1. **Run the MCP server via Docker**: Our Docker image includes all required dependencies pre-configured:
    ```bash
    docker run -p 3000:3000 ghcr.io/tomtom-international/tomtom-mcp:latest
    

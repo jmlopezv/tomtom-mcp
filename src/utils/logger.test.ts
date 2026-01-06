@@ -14,74 +14,87 @@
  * limitations under the License.
  */
 
-import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
-
-// Save the original console.error method
-const originalConsoleError = console.error;
-
-// Set up mock for console.error before importing the module
-console.error = vi.fn();
-
-// Now import the logger
-import { logger } from "./logger";
+import { describe, it, expect, beforeEach } from "vitest";
+import { Writable } from "stream";
+import { makeLogger, type Logger } from "./logger";
 
 describe("Logger", () => {
-  beforeEach(() => {
-    // Clear mocks before each test
-    (console.error as any).mockClear();
-  });
+  let logs: any[];
+  let logger: Logger;
 
-  afterAll(() => {
-    // Restore original console method after all tests
-    console.error = originalConsoleError;
+  beforeEach(() => {
+    // Reset logs array before each test
+    logs = [];
+
+    // Create an in-memory stream that captures logs
+    const memoryStream = new Writable({
+      write(chunk, encoding, callback) {
+        logs.push(JSON.parse(chunk.toString()));
+        callback();
+      },
+    });
+
+    // Create logger with memory stream
+    logger = makeLogger(memoryStream);
   });
 
   it("should log errors with timestamp and ERROR level", () => {
     logger.error("Test error message");
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[ERROR\]: Test error message/
-      )
-    );
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0].level).toBe("error");
+    expect(logs[0].msg).toBe("Test error message");
+    expect(logs[0].time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
   it("should log warnings with timestamp and WARN level", () => {
     logger.warn("Test warning message");
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[WARN\]: Test warning message/
-      )
-    );
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0].level).toBe("warn");
+    expect(logs[0].msg).toBe("Test warning message");
+    expect(logs[0].time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
   it("should log info with timestamp and INFO level", () => {
     logger.info("Test info message");
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[INFO\]: Test info message/
-      )
-    );
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0].level).toBe("info");
+    expect(logs[0].msg).toBe("Test info message");
+    expect(logs[0].time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
   it("should log debug with timestamp and DEBUG level", () => {
     logger.debug("Test debug message");
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[DEBUG\]: Test debug message/
-      )
-    );
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0].level).toBe("debug");
+    expect(logs[0].msg).toBe("Test debug message");
+    expect(logs[0].time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
-  it("should format log output correctly", () => {
-    logger.info("Test formatted message");
+  it("should support structured logging with data objects", () => {
+    logger.info({ userId: 123, action: "login" }, "User logged in");
 
-    // Verify error was called with the message
-    expect((console.error as any).mock.calls.length).toBeGreaterThan(0);
-    const logCall = (console.error as any).mock.calls[0][0];
+    expect(logs).toHaveLength(1);
+    expect(logs[0].level).toBe("info");
+    expect(logs[0].msg).toBe("User logged in");
+    expect(logs[0].userId).toBe(123);
+    expect(logs[0].action).toBe("login");
+  });
 
-    // Check format: [timestamp] [LEVEL]: message
-    expect(logCall).toMatch(
-      /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[INFO\]: Test formatted message$/
-    );
+  it("should log multiple messages in order", () => {
+    logger.info("First message");
+    logger.warn("Second message");
+    logger.error("Third message");
+
+    expect(logs).toHaveLength(3);
+    expect(logs[0].msg).toBe("First message");
+    expect(logs[0].level).toBe("info");
+    expect(logs[1].msg).toBe("Second message");
+    expect(logs[1].level).toBe("warn");
+    expect(logs[2].msg).toBe("Third message");
+    expect(logs[2].level).toBe("error");
   });
 });
