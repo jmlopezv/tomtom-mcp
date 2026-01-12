@@ -164,7 +164,6 @@ export async function getStaticMapImage(
       try {
         // Fetch Genesis copyright text (static maps are Genesis only)
         const copyrightText = await fetchCopyrightCaption(false);
-        logger.info({ copyrightText }, "📄 Static map copyright text");
         
         // Get image dimensions from options
         const width = options.width || DEFAULT_MAP_OPTIONS.width;
