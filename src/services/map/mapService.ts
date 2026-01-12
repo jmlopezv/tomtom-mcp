@@ -164,7 +164,7 @@ export async function getStaticMapImage(
       try {
         // Fetch Genesis copyright text (static maps are Genesis only)
         const copyrightText = await fetchCopyrightCaption(false);
-        
+
         // Get image dimensions from options
         const width = options.width || DEFAULT_MAP_OPTIONS.width;
         const height = options.height || DEFAULT_MAP_OPTIONS.height;
@@ -185,7 +185,7 @@ export async function getStaticMapImage(
         // Convert canvas back to buffer
         finalImageBuffer = canvas.toBuffer('image/png');
         
-        logger.debug(`Added copyright overlay to static map image`);
+        logger.debug("Added copyright overlay to static map image");
         
       } catch (overlayError: any) {
         logger.error({ error: overlayError.message }, "Failed to add copyright overlay to static map. Using original image.");

@@ -228,11 +228,11 @@ async function renderMapWithMapLibre(options: any): Promise<Buffer> {
   if (useOrbis) {
     styleUrl = `maps/orbis/assets/styles/0.5.0-0/style.json`;
     styleParams = { apiVersion: 1, map: 'basic_street-light' };
-    logger.info(`🌍 Using TomTom Orbis style endpoint`);
+    logger.info("🌍 Using TomTom Orbis style endpoint");
   } else {
     styleUrl = `style/1/style/${STYLE_VERSION}`;
     styleParams = { map: MAP_STYLE };
-    logger.info(`🗺️ Using default TomTom style endpoint`);
+    logger.info("🗺️ Using default TomTom style endpoint");
   }
 
   const copyrightText = await fetchCopyrightCaption(useOrbis);
