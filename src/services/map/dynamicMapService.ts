@@ -1072,7 +1072,7 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
 
           const totalCoordinates = routes.reduce((sum, route) => sum + route.length, 0);
           logger.info(
-            { routeCount: routes.length, totalCoordinates },
+            { route_count: routes.length, total_coordinates: totalCoordinates },
             "Calculated routes"
           );
         }
@@ -1109,7 +1109,7 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     };
 
     const sizeKB = (buffer.length / 1024).toFixed(2);
-    logger.info({ sizeKB }, "✅ Dynamic map rendered successfully");
+    logger.info({ size_kb: sizeKB }, "✅ Dynamic map rendered successfully");
 
     return responseData;
   } catch (error: any) {

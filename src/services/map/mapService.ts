@@ -200,7 +200,7 @@ export async function getStaticMapImage(
     const base64 = Buffer.from(finalImageBuffer).toString("base64");
 
     const sizeKB = (finalImageBuffer.byteLength / 1024).toFixed(2);
-    logger.debug({ sizeKB }, "Downloaded and processed static map image");
+    logger.debug({ size_kb: sizeKB }, "Downloaded and processed static map image");
 
     return { base64, contentType };
   } catch (error) {

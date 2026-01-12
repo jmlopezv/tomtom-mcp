@@ -200,7 +200,7 @@ export async function getMultiWaypointRoute(
       throw new Error("At least two waypoints (origin and destination) are required");
     }
 
-    logger.debug({ waypointCount: waypoints.length }, "Calculating multi-waypoint route");
+    logger.debug({ waypoint_count: waypoints.length }, "Calculating multi-waypoint route");
 
     // Format coordinates for URL path (not query params)
     const coordinates = waypoints.map((point) => `${point.lat},${point.lon}`).join(":");

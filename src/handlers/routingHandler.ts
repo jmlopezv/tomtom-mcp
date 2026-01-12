@@ -54,7 +54,7 @@ export function createRoutingHandler() {
 
 export function createWaypointRoutingHandler() {
   return async (params: any) => {
-    logger.info({ waypointCount: params.waypoints.length }, "🗺️ Multi-waypoint route calculation");
+    logger.info({ waypoint_count: params.waypoints.length }, "🗺️ Multi-waypoint route calculation");
     try {
       const result = await getMultiWaypointRoute(params.waypoints, params);
       logger.info("✅ Multi-waypoint route calculated");

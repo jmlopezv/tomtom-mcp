@@ -30,7 +30,7 @@ export function createDynamicMapHandler() {
 
       const sizeKB = (Buffer.from(result.base64, "base64").length / 1024).toFixed(2);
       logger.info(
-        { width: result.width, height: result.height, sizeKB },
+        { width: result.width, height: result.height, size_kb: sizeKB },
         "✅ Dynamic map generated successfully"
       );
 

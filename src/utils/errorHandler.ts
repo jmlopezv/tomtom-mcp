@@ -69,7 +69,7 @@ export function handleApiError(error: unknown, context: string = "API call"): Er
         userMessage = `TomTom server error: The service encountered an internal error. This is likely a temporary issue on TomTom's side. Please try again in a few minutes. Status: ${statusCode}`;
       }
 
-      logger.error({ context, statusCode, error: errorMessage }, "Request failed with status code");
+      logger.error({ context, status_code: statusCode, error: errorMessage }, "Request failed with status code");
       return new TomTomApiError(statusCode, userMessage, axiosError.response);
     } else if (axiosError.request) {
       // Request was made but no response received
