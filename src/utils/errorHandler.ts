@@ -16,7 +16,7 @@
 
 import { logger } from "./logger";
 import axios, { AxiosError } from "axios";
-import { TomTomApiError, TomTomErrorResponse, NetworkError } from "../types/types";
+import { TomTomApiError, TomTomErrorResponse, NetworkError, ErrorInfo } from "../types/types";
 
 /**
  * Handles errors from API calls, providing standardized error handling across services
@@ -25,6 +25,11 @@ import { TomTomApiError, TomTomErrorResponse, NetworkError } from "../types/type
  * @returns A standardized error object
  */
 export function handleApiError(error: unknown, context: string = "API call"): Error {
+  // Pass through ErrorInfo subclasses unchanged
+  if (error instanceof ErrorInfo) {
+    return error;
+  }
+
   // Handle axios errors
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<TomTomErrorResponse>;
@@ -81,7 +86,15 @@ export function handleApiError(error: unknown, context: string = "API call"): Er
   }
 
   // Handle other types of errors
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) {
+    logger.error({ context, error: error.message }, "Request failed with unexpected error");
+    return new ErrorInfo("Unexpected error", { context }, { cause: error });
+  }
+
+  const errorMessage = String(error);
   logger.error({ context, error: errorMessage }, "Request failed with unexpected error");
-  return new Error(`Unexpected error: ${errorMessage}`);
+  return new ErrorInfo("Unexpected error", {
+    context,
+    error_value: errorMessage
+  });
 }

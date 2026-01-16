@@ -21,6 +21,7 @@ import { fetchCopyrightCaption } from "../../utils/copyrightUtils";
 import { DynamicMapOptions, DynamicMapResponse } from "./dynamicMapTypes";
 import { getRoute, getMultiWaypointRoute } from "../routing/routingService";
 import { RouteOptions } from "../routing/types";
+import { IncorrectError, FaultError } from "../../types/types";
 
 // Import geometry and GeoJSON utilities
 import { calculateEnhancedBounds, generateCirclePoints, extractCoordinates } from './geometryUtils';
@@ -139,15 +140,26 @@ const DEFAULT_DYNAMIC_MAP_OPTIONS = {
 function validateCoordinate(value: any, type: string): number {
   const num = parseFloat(value);
   if (isNaN(num)) {
-    throw new Error(`Invalid ${type} coordinate: ${value}`);
+    throw new IncorrectError(`Invalid ${type} coordinate`, {
+      coordinate_type: type,
+      provided_value: value
+    });
   }
 
   if (type === "latitude" && (num < -90 || num > 90)) {
-    throw new Error(`Latitude out of range [-90, 90]: ${num}`);
+    throw new IncorrectError(`Latitude out of range`, {
+      coordinate_type: "latitude",
+      provided_value: num,
+      valid_range: [-90, 90]
+    });
   }
 
   if (type === "longitude" && (num < -180 || num > 180)) {
-    throw new Error(`Longitude out of range [-180, 180]: ${num}`);
+    throw new IncorrectError(`Longitude out of range`, {
+      coordinate_type: "longitude",
+      provided_value: num,
+      valid_range: [-180, 180]
+    });
   }
 
   return num;
@@ -751,9 +763,9 @@ async function renderMapWithMapLibre(options: any): Promise<Buffer> {
         (err: Error | undefined, buffer: Uint8Array | undefined) => {
           if (map) map.release();
           if (err) {
-            reject(new Error(`Map rendering failed: ${err.message}`));
+            reject(new FaultError("Map rendering failed", {}, { cause: err }));
           } else if (!buffer) {
-            reject(new Error("Map rendering failed: No buffer returned"));
+            reject(new FaultError("Map rendering failed: No buffer returned", {}));
           } else {
             try {
               // Convert raw buffer to PNG using canvas (from original implementation)
@@ -802,7 +814,7 @@ async function renderMapWithMapLibre(options: any): Promise<Buffer> {
 
               resolve(pngBuffer);
             } catch (conversionError: any) {
-              reject(new Error(`PNG conversion failed: ${conversionError.message}`));
+              reject(new FaultError("PNG conversion failed", {}, { cause: conversionError }));
             }
           }
         }

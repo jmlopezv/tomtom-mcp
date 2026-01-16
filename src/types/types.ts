@@ -66,8 +66,8 @@ export class NetworkError extends Error {
 export class ErrorInfo extends Error {
   public readonly data: Record<string, unknown>;
 
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ErrorInfo";
     this.data = data;
 
@@ -80,7 +80,8 @@ export class ErrorInfo extends Error {
       name: this.name,
       message: this.message,
       data: this.data,
-      stack: this.stack
+      stack: this.stack,
+      cause: this.cause
     };
   }
 }
@@ -90,8 +91,8 @@ export class ErrorInfo extends Error {
  * Retrying is appropriate after ensuring the callee is healthy
  */
 export class UnavailableError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "UnavailableError";
     Object.setPrototypeOf(this, UnavailableError.prototype);
   }
@@ -102,8 +103,8 @@ export class UnavailableError extends ErrorInfo {
  * Stopping the interruption is needed
  */
 export class InterruptedError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "InterruptedError";
     Object.setPrototypeOf(this, InterruptedError.prototype);
   }
@@ -114,8 +115,8 @@ export class InterruptedError extends ErrorInfo {
  * Backing off and retrying is recommended
  */
 export class BusyError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "BusyError";
     Object.setPrototypeOf(this, BusyError.prototype);
   }
@@ -126,8 +127,8 @@ export class BusyError extends ErrorInfo {
  * The caller's code needs fixing (not retryable)
  */
 export class IncorrectError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "IncorrectError";
     Object.setPrototypeOf(this, IncorrectError.prototype);
   }
@@ -138,8 +139,8 @@ export class IncorrectError extends ErrorInfo {
  * The caller needs proper credentials (not retryable)
  */
 export class ForbiddenError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "ForbiddenError";
     Object.setPrototypeOf(this, ForbiddenError.prototype);
   }
@@ -150,8 +151,8 @@ export class ForbiddenError extends ErrorInfo {
  * The caller must use a different verb (not retryable)
  */
 export class UnsupportedError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "UnsupportedError";
     Object.setPrototypeOf(this, UnsupportedError.prototype);
   }
@@ -162,8 +163,8 @@ export class UnsupportedError extends ErrorInfo {
  * The caller must reference a different noun (not retryable)
  */
 export class NotFoundError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "NotFoundError";
     Object.setPrototypeOf(this, NotFoundError.prototype);
   }
@@ -174,8 +175,8 @@ export class NotFoundError extends ErrorInfo {
  * Coordination between systems is required (not retryable)
  */
 export class ConflictError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "ConflictError";
     Object.setPrototypeOf(this, ConflictError.prototype);
   }
@@ -186,8 +187,8 @@ export class ConflictError extends ErrorInfo {
  * Fixing the callee's bug may help (potentially retryable)
  */
 export class FaultError extends ErrorInfo {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
     this.name = "FaultError";
     Object.setPrototypeOf(this, FaultError.prototype);
   }

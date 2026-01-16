@@ -15,6 +15,7 @@
  */
 
 import { logger } from "../../utils/logger";
+import { IncorrectError } from "../../types/types";
 
 /**
  * Represents a geographic point with latitude and longitude
@@ -368,15 +369,26 @@ export function extractCoordinates(
 function validateCoordinate(value: any, type: string): number {
   const num = parseFloat(value);
   if (isNaN(num)) {
-    throw new Error(`Invalid ${type} coordinate: ${value}`);
+    throw new IncorrectError(`Invalid ${type} coordinate`, {
+      coordinate_type: type,
+      provided_value: value
+    });
   }
 
   if (type === "latitude" && (num < -90 || num > 90)) {
-    throw new Error(`Latitude out of range [-90, 90]: ${num}`);
+    throw new IncorrectError(`Latitude out of range`, {
+      coordinate_type: "latitude",
+      provided_value: num,
+      valid_range: [-90, 90]
+    });
   }
 
   if (type === "longitude" && (num < -180 || num > 180)) {
-    throw new Error(`Longitude out of range [-180, 180]: ${num}`);
+    throw new IncorrectError(`Longitude out of range`, {
+      coordinate_type: "longitude",
+      provided_value: num,
+      valid_range: [-180, 180]
+    });
   }
 
   return num;

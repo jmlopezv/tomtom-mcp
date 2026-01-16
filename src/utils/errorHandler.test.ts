@@ -17,6 +17,7 @@
 import { handleApiError } from "./errorHandler";
 import { AxiosError, AxiosResponse } from "axios";
 import { describe, it, expect, vi } from "vitest";
+import { ErrorInfo } from "../types/types";
 
 // Mock the logger to prevent console output during tests
 vi.mock("./logger", () => ({
@@ -100,6 +101,11 @@ describe("Error Handler", () => {
 
     const result = handleApiError(error, "test");
 
-    expect(result.message).toContain("Regular error");
+    expect(result.message).toBe("Unexpected error");
+    expect(result).toBeInstanceOf(ErrorInfo);
+    if (result instanceof ErrorInfo) {
+      expect(result.cause).toBe(error);
+      expect(result.data.context).toBe("test");
+    }
   });
 });
