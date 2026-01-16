@@ -369,7 +369,7 @@ export function extractCoordinates(
 function validateCoordinate(value: any, type: string): number {
   const num = parseFloat(value);
   if (isNaN(num)) {
-    throw new IncorrectError(`Invalid ${type} coordinate`, {
+    throw new IncorrectError(`Invalid coordinate type`, {
       coordinate_type: type,
       provided_value: value
     });

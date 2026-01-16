@@ -193,3 +193,15 @@ export class FaultError extends ErrorInfo {
     Object.setPrototypeOf(this, FaultError.prototype);
   }
 }
+
+/**
+ * Error category: Unknown error type
+ * May be retryable depending on the underlying cause
+ */
+export class UnknownError extends ErrorInfo {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "UnknownError";
+    Object.setPrototypeOf(this, UnknownError.prototype);
+  }
+}

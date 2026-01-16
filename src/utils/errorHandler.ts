@@ -16,7 +16,7 @@
 
 import { logger } from "./logger";
 import axios, { AxiosError } from "axios";
-import { TomTomApiError, TomTomErrorResponse, NetworkError, ErrorInfo } from "../types/types";
+import { TomTomApiError, TomTomErrorResponse, NetworkError, ErrorInfo, UnknownError } from "../types/types";
 
 /**
  * Handles errors from API calls, providing standardized error handling across services
@@ -87,13 +87,13 @@ export function handleApiError(error: unknown, context: string = "API call"): Er
 
   // Handle other types of errors
   if (error instanceof Error) {
-    logger.error({ context, error: error.message }, "Request failed with unexpected error");
-    return new ErrorInfo("Unexpected error", { context }, { cause: error });
+    logger.error({ context, error: error.message }, "Request failed with unknown error");
+    return new UnknownError("Unknown error", { context }, { cause: error });
   }
 
   const errorMessage = String(error);
-  logger.error({ context, error: errorMessage }, "Request failed with unexpected error");
-  return new ErrorInfo("Unexpected error", {
+  logger.error({ context, error: errorMessage }, "Request failed with unknown error");
+  return new UnknownError("Unknown error", {
     context,
     error_value: errorMessage
   });
