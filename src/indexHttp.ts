@@ -22,6 +22,9 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { runWithSessionContext, setHttpMode } from "./services/base/tomtomClient";
 import { VERSION } from "./version";
+import { registerErrorHandlers } from "./utils/uncaughtErrorHandlers";
+
+registerErrorHandlers();
 
 // ============================================================================
 // Server Configuration
@@ -81,14 +84,6 @@ async function startHttpServer(): Promise<void> {
   app.post("/mcp", async (req: Request, res: Response) => {
     const requestId = randomUUID();
     logger.info({ request_id: requestId }, "Received MCP request");
-
-    // Log request body with some masking for sensitive data
-    const logSafeBody = { ...req.body };
-    if (logSafeBody.params && typeof logSafeBody.params === "object") {
-      // Mask any potentially sensitive fields in params
-      if (logSafeBody.params.apiKey) logSafeBody.params.apiKey = "***MASKED***";
-    }
-    logger.info({ request_id: requestId, body: logSafeBody }, "Request body");
     try {
         // Extract and validate API key
       const apiKey = extractApiKey(req);
