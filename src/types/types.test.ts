@@ -15,25 +15,52 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { TomTomApiError, NetworkError } from "./types";
+import { ErrorWithData } from "./types";
 
-describe("TomTomApiError", () => {
-  it("should set name, message, statusCode, and response", () => {
-    const err = new TomTomApiError(404, "Not found", undefined);
+describe("ErrorWithData", () => {
+  it("should set name, message, and data properties", () => {
+    const err = new ErrorWithData("Invalid coordinate", {
+      field: "latitude",
+      value: 95.5,
+      range: [-90, 90],
+    });
     expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(TomTomApiError);
-    expect(err.name).toMatch(/TomTomApiError/);
-    expect(err.statusCode).toBe(404);
-    expect(err.message).toBe("Not found");
+    expect(err).toBeInstanceOf(ErrorWithData);
+    expect(err.name).toBe("ErrorWithData");
+    expect(err.message).toBe("Invalid coordinate");
+    expect(err.data).toEqual({
+      field: "latitude",
+      value: 95.5,
+      range: [-90, 90],
+    });
   });
-});
 
-describe("NetworkError", () => {
-  it("should set name and message", () => {
-    const err = new NetworkError("No connection");
-    expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(NetworkError);
-    expect(err.name).toMatch(/NetworkError/);
-    expect(err.message).toBe("No connection");
+  it("should default to empty data object if not provided", () => {
+    const err = new ErrorWithData("Something went wrong");
+    expect(err.data).toEqual({});
+  });
+
+  it("should serialize to JSON", () => {
+    const err = new ErrorWithData("API request failed", {
+      status_code: 503,
+      endpoint: "/search/geocode",
+      retry_after: 30,
+    });
+
+    const loggedData = JSON.parse(JSON.stringify(err));
+
+    expect(loggedData).toEqual({
+      name: "ErrorWithData",
+      message: "API request failed",
+      data: {
+        status_code: 503,
+        endpoint: "/search/geocode",
+        retry_after: 30,
+      },
+      stack: expect.any(String),
+    });
+
+    // Verify stack trace is present
+    expect(loggedData.stack).toContain("ErrorWithData");
   });
 });

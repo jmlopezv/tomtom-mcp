@@ -18,6 +18,7 @@ import { tomtomClient, validateApiKey, API_VERSION } from "../base/tomtomClient"
 import { VERSION } from "../../version";
 import { logger } from "../../utils/logger";
 import { fetchCopyrightCaption, addCopyrightOverlay } from "../../utils/copyrightUtils";
+import { UnavailableError } from "../../types/types";
 
 import { MapOptions, DEFAULT_MAP_OPTIONS } from "./types";
 
@@ -139,7 +140,9 @@ export async function getStaticMapImage(
     });
 
     if (!response.status || response.status >= 400) {
-      throw new Error(`Failed to fetch map image: HTTP ${response.status}`);
+      throw new UnavailableError("Failed to fetch map image", {
+        status_code: response.status
+      });
     }
 
     // Get the content type from the response headers

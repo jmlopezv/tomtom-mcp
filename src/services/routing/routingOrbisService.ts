@@ -17,6 +17,7 @@
 import { tomtomClient, validateApiKey, ORBIS_API_VERSION } from "../base/tomtomClient";
 import { handleApiError } from "../../utils/apiErrorHandler";
 import { logger } from "../../utils/logger";
+import { IncorrectError } from "../../types/types";
 import {
   Coordinates,
   RouteResult,
@@ -197,7 +198,10 @@ export async function getMultiWaypointRoute(
     validateApiKey();
 
     if (waypoints.length < 2) {
-      throw new Error("At least two waypoints (origin and destination) are required");
+      throw new IncorrectError("At least two waypoints (origin and destination) are required", {
+        waypoint_count: waypoints.length,
+        minimum_required: 2
+      });
     }
 
     logger.debug({ waypoint_count: waypoints.length }, "Calculating multi-waypoint route");
@@ -319,8 +323,11 @@ export async function getReachableRange(
       options.energyBudgetInkWh === undefined &&
       options.fuelBudgetInLiters === undefined
     ) {
-      throw new Error(
-        "At least one budget parameter (time, distance, energy, or fuel) must be provided"
+      throw new IncorrectError(
+        "At least one budget parameter (time, distance, energy, or fuel) must be provided",
+        {
+          provided_options: Object.keys(options)
+        }
       );
     }
 

@@ -17,7 +17,13 @@
 /**
  * Type definitions for API errors
  */
-import type { AxiosResponse } from "axios";
+
+/**
+ * ErrorOptions was introduced in ES2022, but we're currently targeting ES2018, so defining it here.
+ */
+interface ErrorOptions {
+  cause?: unknown;
+}
 
 /**
  * TomTom API Error response format
@@ -31,31 +37,149 @@ export interface TomTomErrorResponse {
 }
 
 /**
- * Custom error class for TomTom API errors
+ * Custom error class with structured data
  */
-export class TomTomApiError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string,
-    public response?: AxiosResponse<TomTomErrorResponse>
-  ) {
+export class ErrorWithData extends Error {
+  public readonly data: Record<string, unknown>;
+  public readonly cause?: unknown;
+
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
     super(message);
-    this.name = "TomTomApiError";
+    this.name = "ErrorWithData";
+    this.data = data;
+    this.cause = options?.cause;
 
     // Ensures proper prototype chain for instanceof checks
-    Object.setPrototypeOf(this, TomTomApiError.prototype);
+    Object.setPrototypeOf(this, ErrorWithData.prototype);
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      data: this.data,
+      stack: this.stack,
+      cause: this.cause
+    };
   }
 }
 
 /**
- * Custom error class for network issues
+ * Error category: The service is unavailable
+ * Retrying is appropriate after ensuring the callee is healthy
  */
-export class NetworkError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "NetworkError";
+export class UnavailableError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "UnavailableError";
+    Object.setPrototypeOf(this, UnavailableError.prototype);
+  }
+}
 
-    // Ensures proper prototype chain for instanceof checks
-    Object.setPrototypeOf(this, NetworkError.prototype);
+/**
+ * Error category: An operation was interrupted
+ * Stopping the interruption is needed
+ */
+export class InterruptedError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "InterruptedError";
+    Object.setPrototypeOf(this, InterruptedError.prototype);
+  }
+}
+
+/**
+ * Error category: The system is busy/overloaded
+ * Backing off and retrying is recommended
+ */
+export class BusyError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "BusyError";
+    Object.setPrototypeOf(this, BusyError.prototype);
+  }
+}
+
+/**
+ * Error category: The caller sent incorrect/invalid information
+ * The caller's code needs fixing (not retryable)
+ */
+export class IncorrectError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "IncorrectError";
+    Object.setPrototypeOf(this, IncorrectError.prototype);
+  }
+}
+
+/**
+ * Error category: Access is forbidden
+ * The caller needs proper credentials (not retryable)
+ */
+export class ForbiddenError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "ForbiddenError";
+    Object.setPrototypeOf(this, ForbiddenError.prototype);
+  }
+}
+
+/**
+ * Error category: The requested operation is not supported
+ * The caller must use a different verb (not retryable)
+ */
+export class UnsupportedError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "UnsupportedError";
+    Object.setPrototypeOf(this, UnsupportedError.prototype);
+  }
+}
+
+/**
+ * Error category: The requested resource was not found
+ * The caller must reference a different noun (not retryable)
+ */
+export class NotFoundError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "NotFoundError";
+    Object.setPrototypeOf(this, NotFoundError.prototype);
+  }
+}
+
+/**
+ * Error category: Conflict with the callee's state
+ * Coordination between systems is required (not retryable)
+ */
+export class ConflictError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "ConflictError";
+    Object.setPrototypeOf(this, ConflictError.prototype);
+  }
+}
+
+/**
+ * Error category: Internal fault on the callee side
+ * Fixing the callee's bug may help (potentially retryable)
+ */
+export class FaultError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "FaultError";
+    Object.setPrototypeOf(this, FaultError.prototype);
+  }
+}
+
+/**
+ * Error category: Unknown error type
+ * May be retryable depending on the underlying cause
+ */
+export class UnknownError extends ErrorWithData {
+  constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
+    super(message, data, options);
+    this.name = "UnknownError";
+    Object.setPrototypeOf(this, UnknownError.prototype);
   }
 }
