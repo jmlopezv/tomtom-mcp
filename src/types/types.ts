@@ -19,6 +19,13 @@
  */
 
 /**
+ * ErrorOptions was introduced in ES2022, but we're currently targeting ES2018, so defining it here.
+ */
+interface ErrorOptions {
+  cause?: unknown;
+}
+
+/**
  * TomTom API Error response format
  */
 export interface TomTomErrorResponse {
@@ -34,11 +41,13 @@ export interface TomTomErrorResponse {
  */
 export class ErrorWithData extends Error {
   public readonly data: Record<string, unknown>;
+  public readonly cause?: unknown;
 
   constructor(message: string, data: Record<string, unknown> = {}, options?: ErrorOptions) {
-    super(message, options);
+    super(message);
     this.name = "ErrorWithData";
     this.data = data;
+    this.cause = options?.cause;
 
     // Ensures proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, ErrorWithData.prototype);
