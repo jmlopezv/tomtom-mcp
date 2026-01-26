@@ -73,6 +73,15 @@ async function callHealth(port: number): Promise<HealthResponse> {
   return response.json();
 }
 
+/** Helper to assert all tools target a specific backend */
+function expectToolsToTargetBackend(result: ToolsListResponse, backend: string): void {
+  expect(result.result?.tools).toBeDefined();
+  expect(result.result!.tools.length).toBeGreaterThan(0);
+  for (const tool of result.result!.tools) {
+    expect(tool._meta?.backend).toBe(backend);
+  }
+}
+
 describe("HTTP Server Integration - Dual Backend Mode", () => {
   let serverResult: HttpServerResult;
   const TEST_PORT = 3998;
@@ -101,31 +110,17 @@ describe("HTTP Server Integration - Dual Backend Mode", () => {
 
   it("returns genesis tools with _meta.backend='genesis' when header is 'genesis'", async () => {
     const result = await callToolsList(TEST_PORT, "genesis");
-
-    expect(result.result?.tools).toBeDefined();
-    expect(result.result!.tools.length).toBeGreaterThan(0);
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("genesis");
-    }
+    expectToolsToTargetBackend(result, "genesis");
   });
 
   it("returns orbis tools with _meta.backend='orbis' when header is 'orbis'", async () => {
     const result = await callToolsList(TEST_PORT, "orbis");
-
-    expect(result.result?.tools).toBeDefined();
-    expect(result.result!.tools.length).toBeGreaterThan(0);
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("orbis");
-    }
+    expectToolsToTargetBackend(result, "orbis");
   });
 
   it("defaults to genesis when no header is provided", async () => {
     const result = await callToolsList(TEST_PORT);
-
-    expect(result.result?.tools).toBeDefined();
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("genesis");
-    }
+    expectToolsToTargetBackend(result, "genesis");
   });
 });
 
@@ -155,20 +150,12 @@ describe("HTTP Server Integration - Fixed Backend Mode (Orbis)", () => {
 
   it("always returns orbis tools even when header requests genesis", async () => {
     const result = await callToolsList(TEST_PORT, "genesis");
-
-    expect(result.result?.tools).toBeDefined();
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("orbis");
-    }
+    expectToolsToTargetBackend(result, "orbis");
   });
 
   it("returns orbis tools when no header is provided", async () => {
     const result = await callToolsList(TEST_PORT);
-
-    expect(result.result?.tools).toBeDefined();
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("orbis");
-    }
+    expectToolsToTargetBackend(result, "orbis");
   });
 });
 
@@ -198,19 +185,11 @@ describe("HTTP Server Integration - Fixed Backend Mode (Genesis)", () => {
 
   it("always returns genesis tools even when header requests orbis", async () => {
     const result = await callToolsList(TEST_PORT, "orbis");
-
-    expect(result.result?.tools).toBeDefined();
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("genesis");
-    }
+    expectToolsToTargetBackend(result, "genesis");
   });
 
   it("returns genesis tools when no header is provided", async () => {
     const result = await callToolsList(TEST_PORT);
-
-    expect(result.result?.tools).toBeDefined();
-    for (const tool of result.result!.tools) {
-      expect(tool._meta?.backend).toBe("genesis");
-    }
+    expectToolsToTargetBackend(result, "genesis");
   });
 });
