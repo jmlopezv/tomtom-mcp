@@ -34,8 +34,7 @@ interface HealthResponse {
   status: string;
   version: string;
   mode: string;
-  backends?: string[];
-  backend?: string;
+  backends: string[];
   default?: string;
 }
 
@@ -128,30 +127,6 @@ describe("HTTP Server Integration - Dual Backend Mode", () => {
       expect(tool._meta?.backend).toBe("genesis");
     }
   });
-
-  it("verifies _meta.backend for all tools", async () => {
-    const genesisResult = await callToolsList(TEST_PORT, "genesis");
-    const orbisResult = await callToolsList(TEST_PORT, "orbis");
-
-    const genesisTools = genesisResult.result!.tools;
-    const orbisTools = orbisResult.result!.tools;
-
-    // Genesis should have static-map, Orbis should not
-    const genesisNames = genesisTools.map((t) => t.name);
-    const orbisNames = orbisTools.map((t) => t.name);
-    expect(genesisNames).toContain("tomtom-static-map");
-    expect(orbisNames).not.toContain("tomtom-static-map");
-
-    // Verify ALL Genesis tools have _meta.backend = "genesis"
-    for (const tool of genesisTools) {
-      expect(tool._meta?.backend, `Genesis tool '${tool.name}' should have backend='genesis'`).toBe("genesis");
-    }
-
-    // Verify ALL Orbis tools have _meta.backend = "orbis"
-    for (const tool of orbisTools) {
-      expect(tool._meta?.backend, `Orbis tool '${tool.name}' should have backend='orbis'`).toBe("orbis");
-    }
-  });
 });
 
 describe("HTTP Server Integration - Fixed Backend Mode (Orbis)", () => {
@@ -174,8 +149,8 @@ describe("HTTP Server Integration - Fixed Backend Mode (Orbis)", () => {
 
     expect(health.status).toBe("ok");
     expect(health.mode).toBe("fixed");
-    expect(health.backend).toBe("orbis");
-    expect(health.backends).toBeUndefined();
+    expect(health.backends).toEqual(["orbis"]);
+    expect(health.default).toBeUndefined();
   });
 
   it("always returns orbis tools even when header requests genesis", async () => {
@@ -217,8 +192,8 @@ describe("HTTP Server Integration - Fixed Backend Mode (Genesis)", () => {
 
     expect(health.status).toBe("ok");
     expect(health.mode).toBe("fixed");
-    expect(health.backend).toBe("genesis");
-    expect(health.backends).toBeUndefined();
+    expect(health.backends).toEqual(["genesis"]);
+    expect(health.default).toBeUndefined();
   });
 
   it("always returns genesis tools even when header requests orbis", async () => {

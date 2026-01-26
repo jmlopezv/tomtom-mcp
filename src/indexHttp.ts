@@ -164,10 +164,8 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       status: "ok",
       version: VERSION,
       mode: fixedBackend ? "fixed" : "dual",
-      ...(fixedBackend
-        ? { backend: fixedBackend }
-        : { backends: Object.keys(servers), default: defaultBackend }
-      ),
+      backends: Object.keys(servers),
+      ...(!fixedBackend && { default: defaultBackend }),
     });
   });
 
@@ -175,10 +173,8 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     logger.info({
       port,
       mode: fixedBackend ? "fixed" : "dual",
-      ...(fixedBackend
-        ? { backend: fixedBackend }
-        : { backends: Object.keys(servers), default: defaultBackend }
-      ),
+      backends: Object.keys(servers),
+      ...(!fixedBackend && { default: defaultBackend }),
     }, "TomTom MCP HTTP Server started");
   });
 
