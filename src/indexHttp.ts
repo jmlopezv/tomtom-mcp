@@ -136,7 +136,7 @@ async function startHttpServer(): Promise<void> {
       mode: FIXED_BACKEND ? "fixed" : "dual",
       ...(FIXED_BACKEND
         ? { backend: FIXED_BACKEND }
-        : { backends: ["orbis", "genesis"], default: DEFAULT_BACKEND }
+        : { backends: Object.keys(servers), default: DEFAULT_BACKEND }
       ),
     });
   });
@@ -146,7 +146,10 @@ async function startHttpServer(): Promise<void> {
     logger.info({
       port: PORT,
       mode: FIXED_BACKEND ? "fixed" : "dual",
-      backend: FIXED_BACKEND || `${DEFAULT_BACKEND} (default)`,
+      ...(FIXED_BACKEND
+        ? { backend: FIXED_BACKEND }
+        : { backends: Object.keys(servers), default: DEFAULT_BACKEND }
+      ),
     }, "TomTom MCP HTTP Server started");
   });
 
