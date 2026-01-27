@@ -30,9 +30,9 @@ export function createMapOrbisTools(server: McpServer): void {
     {
       title: "TomTom Dynamic Map",
       description: "Advanced map rendering with custom markers, routes, polygons, and traffic visualization using server-side rendering",
-      inputSchema: schemas.tomtomDynamicMapSchema,
+      inputSchema: schemas.tomtomDynamicMapSchema as any,
       _meta: { backend: "orbis" },
     },
-    async (params: any) => dynamicHandler({ ...params, use_orbis: true })
+    (async (params: any) => dynamicHandler({ ...params, use_orbis: true })) as any
   );
 }

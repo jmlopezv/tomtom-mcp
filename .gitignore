@@ -60,3 +60,5 @@ debug.log
 test-*.js
 !tests/test-*.js
 .history
+
+MCP_APPS_implementation_reference/
