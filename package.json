@@ -17,7 +17,8 @@
   "scripts": {
     "build:ts": "tsc --emitDeclarationOnly --declaration --declarationMap",
     "build:rollup": "rollup -c",
-    "build": "npm run build:ts && npm run build:rollup",
+    "build:ui": "cd src/ui_resources && vite build",
+    "build": "npm run build:ts && npm run build:rollup && npm run build:ui",
     "build:bin": "shx chmod +x bin/tomtom-mcp.js && shx chmod +x bin/tomtom-mcp-http.js",
     "start": "node dist/index.esm.js",
     "start:http": "node dist/indexHttp.esm.js",
@@ -41,6 +42,7 @@
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.25.3",
+    "maplibre-gl": "^5.16.0",
     "@rollup/plugin-commonjs": "^28.0.9",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
@@ -76,6 +78,7 @@
     "prettier": "^3.6.1",
     "ts-node": "^10.9.1",
     "vite": "^7.1.12",
+    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^4.0.11"
   },
   "optionalDependencies": {

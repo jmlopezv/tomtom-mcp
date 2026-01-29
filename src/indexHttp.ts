@@ -91,12 +91,14 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
 
   const app = express();
   app.use(express.json());
-  app.use(cors({
-    origin: allowedOrigins?.split(",") || "*",
-    methods: ["POST", "GET"],
-    allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend"],
-    maxAge: 86400,
-  }));
+  app.use(cors(
+  //   {
+  //   origin: allowedOrigins?.split(",") || "*",
+  //   methods: ["POST", "GET"],
+  //   allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend"],
+  //   maxAge: 86400,
+  // }
+));
 
   const servers: Partial<Record<Backend, ServerInstance>> = {};
 

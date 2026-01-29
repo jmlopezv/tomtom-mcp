@@ -26,14 +26,68 @@ import {
 } from "../handlers/searchOrbisHandler";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {registerAppResource, RESOURCE_MIME_TYPE} from "@modelcontextprotocol/ext-apps/server";
+import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
+import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
+import { fileURLToPath } from "node:url";
 
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Get directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Resource URI for the POI search MCP app
+const POI_SEARCH_RESOURCE_URI = "ui://tomtom-poi-search/mcp-app.html";
 
 /**
  * Creates and registers search-related tools
  */
 export function createSearchOrbisTools(server: McpServer): void {
+  // Register the POI search UI resource
+  registerAppResource(
+    server,
+    POI_SEARCH_RESOURCE_URI,
+    POI_SEARCH_RESOURCE_URI,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const htmlPath = path.join(__dirname, "ui_resources/mcp-app.html");
+      try {
+        const html = await fs.readFile(htmlPath, "utf-8");
+        return {
+          contents: [{
+            uri: POI_SEARCH_RESOURCE_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
+            _meta: {
+                ui: {
+                    csp: {
+                        connectDomains: [
+                            "https://api.tomtom.com",
+                            "https://*.api.tomtom.com",
+                            "https://unpkg.com",
+                        ],
+                        resourceDomains: [
+                            "https://unpkg.com",
+                        ],
+                        styleDomains: [
+                            "https://unpkg.com",
+                        ],
+                    },
+                },
+            },
+          }],
+        };
+      } catch (error) {
+        console.error("Failed to load MCP app HTML:", error);
+        return {
+          contents: [{
+            uri: POI_SEARCH_RESOURCE_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: `<!DOCTYPE html><html><head><title>Error</title></head><body><p>Failed to load POI Search UI. Run <code>npm run build:ui</code>.</p></body></html>`,
+          }],
+        };
+      }
+    }
+  );
+
   // Geocode tool
   server.registerTool(
     "tomtom-geocode",
@@ -70,53 +124,22 @@ export function createSearchOrbisTools(server: McpServer): void {
     createFuzzySearchHandler() as any
   );
 
-  // POI search tool
-  server.registerTool(
+  // POI search tool with UI
+  registerAppTool(
+    server,
     "tomtom-poi-search",
     {
       title: "TomTom POI Search",
-      description: "Find specific business categories",
+      description: "Find specific business categories with interactive UI",
       inputSchema: schemas.tomtomPOISearchSchema as any,
-      _meta: { backend: "orbis" },
+      _meta: {
+        backend: "orbis",
+        [RESOURCE_URI_META_KEY]: POI_SEARCH_RESOURCE_URI,
+      },
     },
     createPoiSearchHandler() as any
   );
 
-    const resourceUri = "ui://tomtom-poi-search/mcp-app.html";
-
-    registerAppResource(
-        server,
-        resourceUri,
-        resourceUri,
-        { mimeType: RESOURCE_MIME_TYPE },
-        async () => {
-            const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
-
-            return {
-                contents: [
-                    {
-                        uri: resourceUri,
-                        mimeType: RESOURCE_MIME_TYPE,
-                        text: html,
-                        _meta: {
-                            ui: {
-                                csp: {
-                                    connectDomains: [
-                                        "https://api.tomtom.com",
-                                        "https://*.api.tomtom.com",
-                                        "https://unpkg.com",
-                                    ],
-                                    resourceDomains: [
-                                        "https://unpkg.com",
-                                    ],
-                                },
-                            },
-                        },
-                    },
-                ],
-            };
-        },
-    )
 
   // Nearby search tool
   server.registerTool(
