@@ -1,24 +1,14 @@
 /*
  * Copyright (C) 2025 TomTom Navigation B.V.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Licensed under the Apache License, Version 2.0
  */
 
 import { App } from '@modelcontextprotocol/ext-apps';
-import { TomTomConfig } from '@tomtom-org/maps-sdk/core';
+import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
+import { parseSearchResponse } from '../../shared/sdk-parsers';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -60,55 +50,27 @@ let placesModule: PlacesModule | null = null;
 })();
 
 // Display POIs on map
-async function displayPOIs(data: any) {
+async function displayPOIs(apiResponse: any) {
   if (!placesModule) return;
 
-  const results = data.results || [];
-  if (results.length === 0) {
+  // Use SDK's built-in parser for correct format
+  const searchResult = parseSearchResponse(apiResponse);
+
+  if (!searchResult.features?.length) {
     await placesModule.clear();
     return;
   }
 
-  // Convert to Places format
-  const places = results.map((poi: any) => ({
-    type: 'Feature',
-    geometry: {
-      type: 'Point',
-      coordinates: [poi.position.lon, poi.position.lat],
-    },
-    properties: {
-      ...poi,
-      id: poi.id,
-      address: poi.address,
-      poi: poi.poi,
-      position: poi.position,
-    },
-  }));
+  // Show places using SDK-parsed format
+  await placesModule.show(searchResult.features as any);
 
-  await placesModule.show(places);
-
-  // Fit bounds
-  const bounds = results.map((poi: any) => [poi.position.lon, poi.position.lat]);
-  if (bounds.length === 1) {
-    map.mapLibreMap.setCenter(bounds[0]);
-    map.mapLibreMap.setZoom(14);
-  } else if (bounds.length > 1) {
-    const bbox = bounds.reduce(
-      (acc: any, [lng, lat]: any) => ({
-        minLng: Math.min(acc.minLng, lng),
-        maxLng: Math.max(acc.maxLng, lng),
-        minLat: Math.min(acc.minLat, lat),
-        maxLat: Math.max(acc.maxLat, lat),
-      }),
-      { minLng: Infinity, maxLng: -Infinity, minLat: Infinity, maxLat: -Infinity }
-    );
-    map.mapLibreMap.fitBounds(
-      [
-        [bbox.minLng, bbox.minLat],
-        [bbox.maxLng, bbox.maxLat],
-      ],
-      { padding: 50 }
-    );
+  // Fit bounds using SDK utility
+  const bbox = bboxFromGeoJSON(searchResult);
+  if (bbox) {
+    map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
+      padding: 50,
+      maxZoom: 15,
+    });
   }
 }
 

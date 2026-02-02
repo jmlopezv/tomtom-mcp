@@ -4,10 +4,10 @@
  */
 
 import { App } from '@modelcontextprotocol/ext-apps';
-import { TomTomConfig, Waypoint } from '@tomtom-org/maps-sdk/core';
+import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, RoutingModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
-import { transformApiRoutes } from '../../shared/route-info';
+import { parseRoutingResponse, extractWaypointsFromRoutes } from '../../shared/sdk-parsers';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -43,70 +43,35 @@ let pendingData: any = null;
   });
 })();
 
-function processRouteData(data: any) {
+function processRouteData(apiResponse: any) {
   if (!routingModule) return;
 
-  const routes = data.routes || [];
-  if (!routes.length) {
-    clear();
-    return;
-  }
-
-  const route = routes[0];
-
-  // Extract all coordinates from legs
-  const allCoords: [number, number][] = [];
-  (route.legs || []).forEach((leg: any) => {
-    leg.points?.forEach((p: any) => {
-      allCoords.push([p.longitude, p.latitude]);
-    });
+  // Use SDK's built-in parser for correct format
+  const routes = parseRoutingResponse(apiResponse, {
+    language: 'en-GB',
+    units: 'metric',
   });
 
-  if (allCoords.length < 2) {
+  if (!routes.features?.length) {
     clear();
     return;
   }
 
-  // Create start and end waypoints
-  const startCoord = allCoords[0];
-  const endCoord = allCoords[allCoords.length - 1];
+  // Extract waypoints from parsed routes
+  const waypoints = extractWaypointsFromRoutes(routes);
 
-  const waypoints: Waypoint[] = [
-    {
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: startCoord },
-      properties: { name: 'Start' }
-    } as any,
-    {
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: endCoord },
-      properties: { name: 'End' }
-    } as any
-  ];
+  // Show route and waypoints
+  routingModule.showRoutes(routes);
+  routingModule.showWaypoints(waypoints as any);
 
-  // Transform to SDK format and show route
-  const sdkRoutes = transformApiRoutes(routes);
-  routingModule.showRoutes(sdkRoutes);
-  routingModule.showWaypoints(waypoints);
-
-  // Fit map to show entire route
-  fitBounds(allCoords);
-}
-
-function fitBounds(coords: number[][]) {
-  if (coords.length < 2) return;
-
-  const bbox = coords.reduce((acc, [lng, lat]) => ({
-    minLng: Math.min(acc.minLng, lng),
-    maxLng: Math.max(acc.maxLng, lng),
-    minLat: Math.min(acc.minLat, lat),
-    maxLat: Math.max(acc.maxLat, lat),
-  }), { minLng: Infinity, maxLng: -Infinity, minLat: Infinity, maxLat: -Infinity });
-
-  map.mapLibreMap.fitBounds(
-    [[bbox.minLng, bbox.minLat], [bbox.maxLng, bbox.maxLat]],
-    { padding: 80, maxZoom: 15 }
-  );
+  // Fit map to route bounds using SDK utility
+  const bbox = bboxFromGeoJSON(routes);
+  if (bbox) {
+    map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
+      padding: 80,
+      maxZoom: 15,
+    });
+  }
 }
 
 async function clear() {

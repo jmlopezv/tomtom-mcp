@@ -4,10 +4,11 @@
  */
 
 import { App } from '@modelcontextprotocol/ext-apps';
-import { TomTomConfig } from '@tomtom-org/maps-sdk/core';
+import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
+import { parseGeocodingResponse } from '../../shared/sdk-parsers';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -36,31 +37,26 @@ let placesModule: PlacesModule | null = null;
   });
 })();
 
-async function displayResults(data: any) {
+async function displayResults(apiResponse: any) {
   if (!placesModule) return;
-  const results = data.results || [];
-  if (!results.length) { await placesModule.clear(); return; }
 
-  const places = results.map((r: any) => ({
-    type: 'Feature',
-    geometry: { type: 'Point', coordinates: [r.position.lon, r.position.lat] },
-    properties: { ...r, address: r.address, position: r.position },
-  }));
+  // Use SDK's built-in parser for correct format
+  const geocodeResult = parseGeocodingResponse(apiResponse);
 
-  await placesModule.show(places);
-  fitBounds(results.map((r: any) => [r.position.lon, r.position.lat]));
-}
+  if (!geocodeResult.features?.length) {
+    await placesModule.clear();
+    return;
+  }
 
-function fitBounds(bounds: number[][]) {
-  if (bounds.length === 1) {
-    map.mapLibreMap.setCenter(bounds[0] as [number, number]);
-    map.mapLibreMap.setZoom(14);
-  } else if (bounds.length > 1) {
-    const bbox = bounds.reduce((a, [lng, lat]) => ({
-      minLng: Math.min(a.minLng, lng), maxLng: Math.max(a.maxLng, lng),
-      minLat: Math.min(a.minLat, lat), maxLat: Math.max(a.maxLat, lat),
-    }), { minLng: Infinity, maxLng: -Infinity, minLat: Infinity, maxLat: -Infinity });
-    map.mapLibreMap.fitBounds([[bbox.minLng, bbox.minLat], [bbox.maxLng, bbox.maxLat]], { padding: 50 });
+  await placesModule.show(geocodeResult.features as any);
+
+  // Fit bounds using SDK utility
+  const bbox = bboxFromGeoJSON(geocodeResult);
+  if (bbox) {
+    map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
+      padding: 50,
+      maxZoom: 15,
+    });
   }
 }
 

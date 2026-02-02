@@ -4,9 +4,10 @@
  */
 
 import { App } from '@modelcontextprotocol/ext-apps';
-import { TomTomConfig } from '@tomtom-org/maps-sdk/core';
+import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
+import { parseReachableRangeResponse } from '../../shared/sdk-parsers';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -41,36 +42,41 @@ const rangeLineId = 'range-line';
   });
 })();
 
-async function displayRange(data: any) {
-  const range = data.reachableRange;
-  if (!range?.boundary) { await clear(); return; }
+async function displayRange(apiResponse: any) {
+  // Use SDK's built-in parser for correct format
+  const rangeResult = parseReachableRangeResponse(apiResponse);
 
-  const coords = range.boundary.map((p: any) => [p.longitude, p.latitude]);
-  if (coords.length && (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])) {
-    coords.push(coords[0]); // Close polygon
+  if (!rangeResult?.features?.length) {
+    await clear();
+    return;
   }
 
-  const src = map.mapLibreMap.getSource(rangeSourceId) as any;
-  if (src) src.setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: {} });
+  const rangeFeature = rangeResult.features[0];
+  const geometry = rangeFeature.geometry;
 
-  if (placesModule && range.center) {
-    await placesModule.show([{
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [range.center.longitude, range.center.latitude] },
-      properties: { label: 'Center' },
-    }]);
+  // Handle polygon geometry from SDK parser
+  if (geometry.type === 'Polygon') {
+    const src = map.mapLibreMap.getSource(rangeSourceId) as any;
+    if (src) src.setData(rangeFeature);
+
+    // Show center marker if available in properties
+    const center = rangeFeature.properties?.center;
+    if (placesModule && center) {
+      await placesModule.show([{
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [center.longitude, center.latitude] },
+        properties: { label: 'Center' },
+      }]);
+    }
+
+    // Fit bounds using SDK utility
+    const bbox = bboxFromGeoJSON(rangeResult);
+    if (bbox) {
+      map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
+        padding: 50,
+      });
+    }
   }
-
-  fitBounds(coords);
-}
-
-function fitBounds(coords: number[][]) {
-  if (coords.length < 3) return;
-  const bbox = coords.reduce((a, [lng, lat]) => ({
-    minLng: Math.min(a.minLng, lng), maxLng: Math.max(a.maxLng, lng),
-    minLat: Math.min(a.minLat, lat), maxLat: Math.max(a.maxLat, lat),
-  }), { minLng: Infinity, maxLng: -Infinity, minLat: Infinity, maxLat: -Infinity });
-  map.mapLibreMap.fitBounds([[bbox.minLng, bbox.minLat], [bbox.maxLng, bbox.maxLat]], { padding: 50 });
 }
 
 async function clear() {
