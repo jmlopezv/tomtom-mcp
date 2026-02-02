@@ -1,7 +1,6 @@
 /**
  * Build script for MCP Apps - parallel builds with vite-plugin-singlefile
  */
-const { build } = require('vite');
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
@@ -59,6 +58,7 @@ function discoverApps() {
  * Build a single app
  */
 async function buildApp(app) {
+  const { build } = await import('vite');
   const { viteSingleFile } = await import('vite-plugin-singlefile');
 
   try {
