@@ -16,7 +16,19 @@
 
 import { z } from "zod";
 
+// UI visibility parameter for MCP Apps
+const uiVisibilityParam = {
+  show_ui: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "Whether to display the interactive map widget. Set to false for intermediate/background operations where visualization is not needed. Default: true"
+    ),
+};
+
 export const tomtomTrafficSchema = {
+  ...uiVisibilityParam,
   bbox: z
     .string()
     .optional()

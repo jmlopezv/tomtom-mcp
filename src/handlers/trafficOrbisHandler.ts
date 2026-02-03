@@ -32,24 +32,27 @@ async function getTrafficByBbox(bbox?: string, options: any = {}) {
 export function createTrafficHandler() {
   return async (params: any) => {
     try {
-      if (!params.bbox && !params.query) {
+      const { show_ui = true, ...trafficParams } = params;
+      if (!trafficParams.bbox && !trafficParams.query) {
         throw new Error("Either bbox or query parameter must be provided");
       }
 
       const options = {
-        language: params.language,
-        maxResults: params.maxResults,
-        categoryFilter: params.categoryFilter,
-        timeValidityFilter: params.timeValidityFilter,
+        language: trafficParams.language,
+        maxResults: trafficParams.maxResults,
+        categoryFilter: trafficParams.categoryFilter,
+        timeValidityFilter: trafficParams.timeValidityFilter,
       };
 
-      logger.info({ bbox: params.bbox }, "🚦 Traffic lookup");
-      const result = await getTrafficByBbox(params.bbox, options);
+      logger.info({ bbox: trafficParams.bbox }, "🚦 Traffic lookup");
+      const result = await getTrafficByBbox(trafficParams.bbox, options);
 
       const count = result.incidents?.length || 0;
       logger.info({ count }, "✅ Traffic incidents found");
 
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+      // Include show_ui flag in response for App to handle widget visibility
+      const response = { ...result, _meta: { show_ui } };
+      return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Traffic lookup failed");
       return {

@@ -7,6 +7,7 @@ import { App } from '@modelcontextprotocol/ext-apps';
 import { TomTomConfig } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, TrafficFlowModule, TrafficIncidentsModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
+import { shouldShowUI, hideMapUI } from '../../shared/ui-visibility';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -106,7 +107,12 @@ app.ontoolresult = (r) => {
   if (r.isError) return;
   try {
     if (r.content[0].type === 'text') {
-      displayIncidents(JSON.parse(r.content[0].text));
+      const apiResponse = JSON.parse(r.content[0].text);
+      if (!shouldShowUI(apiResponse)) {
+        hideMapUI();
+        return;
+      }
+      displayIncidents(apiResponse);
     }
   } catch (e) {
     console.error('Error parsing incident data:', e);

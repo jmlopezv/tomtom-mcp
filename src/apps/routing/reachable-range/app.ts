@@ -8,6 +8,7 @@ import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { parseReachableRangeResponse } from '../../shared/sdk-parsers';
+import { shouldShowUI, hideMapUI } from '../../shared/ui-visibility';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -113,8 +114,16 @@ async function clear() {
 const app = new App({ name: 'TomTom Reachable Range', version: '1.0.0' });
 app.ontoolresult = (r) => {
   if (r.isError) return;
-  try { if (r.content[0].type === 'text') displayRange(JSON.parse(r.content[0].text)); }
-  catch (e) { console.error(e); }
+  try {
+    if (r.content[0].type === 'text') {
+      const apiResponse = JSON.parse(r.content[0].text);
+      if (!shouldShowUI(apiResponse)) {
+        hideMapUI();
+        return;
+      }
+      displayRange(apiResponse);
+    }
+  } catch (e) { console.error(e); }
 };
 app.onteardown = async () => { await clear(); return {}; };
 app.connect();
