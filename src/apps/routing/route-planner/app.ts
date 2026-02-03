@@ -8,6 +8,7 @@ import { TomTomConfig, bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
 import { TomTomMap, RoutingModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { parseRoutingResponse, extractWaypointsFromRoutes } from '../../shared/sdk-parsers';
+import { shouldShowUI, hideMapUI } from '../../shared/ui-visibility';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -94,7 +95,12 @@ app.ontoolresult = (r) => {
   if (r.isError) return;
   try {
     if (r.content[0].type === 'text') {
-      displayRoute(JSON.parse(r.content[0].text));
+      const apiResponse = JSON.parse(r.content[0].text);
+      if (!shouldShowUI(apiResponse)) {
+        hideMapUI();
+        return;
+      }
+      displayRoute(apiResponse);
     }
   } catch (e) {
     console.error('Error parsing route data:', e);

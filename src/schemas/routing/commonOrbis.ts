@@ -16,6 +16,17 @@
 
 import { z } from "zod";
 
+// UI visibility parameter for MCP Apps
+export const uiVisibilityParam = {
+  show_ui: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "Whether to display the interactive map widget. Set to false for intermediate/background operations where visualization is not needed. Default: true"
+    ),
+};
+
 // Common coordinate schema for reuse
 export const coordinateSchema = z.object({
   lat: z

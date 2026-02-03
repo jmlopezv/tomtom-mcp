@@ -20,6 +20,7 @@ import {
   routingOptionsSchema,
   vehicleSchema,
   sectionTypeSchema,
+  uiVisibilityParam,
 } from "./commonOrbis";
 
 export const tomtomRoutingSchema = {
@@ -29,6 +30,7 @@ export const tomtomRoutingSchema = {
   destination: coordinateSchema.describe(
     "Destination coordinates. Obtain from geocoding for best results."
   ),
+  ...uiVisibilityParam,
   ...routingOptionsSchema,
   ...vehicleSchema,
   sectionType: sectionTypeSchema.describe(
@@ -43,6 +45,7 @@ export const tomtomWaypointRoutingSchema = {
     .describe(
       "Ordered array of waypoint coordinates (minimum 2). Route calculated in exact sequence provided. Use geocoding for accurate coordinates."
     ),
+  ...uiVisibilityParam,
   ...routingOptionsSchema,
   ...vehicleSchema,
   sectionType: sectionTypeSchema.describe(
@@ -54,6 +57,7 @@ export const tomtomReachableRangeSchema = {
   origin: coordinateSchema.describe(
     "Starting point for reachable area calculation. Typically current location or point of interest."
   ),
+  ...uiVisibilityParam,
   // Budget parameters
   timeBudgetInSec: z
     .number()

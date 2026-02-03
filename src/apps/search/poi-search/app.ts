@@ -9,6 +9,7 @@ import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
 import { parseSearchResponse } from '../../shared/sdk-parsers';
+import { shouldShowUI, hideMapUI } from '../../shared/ui-visibility';
 import { API_KEY } from '../../shared/config';
 import './styles.css';
 
@@ -82,7 +83,12 @@ app.ontoolresult = (result) => {
   try {
     const content = result.content[0];
     if (content.type === 'text') {
-      displayPOIs(JSON.parse(content.text));
+      const apiResponse = JSON.parse(content.text);
+      if (!shouldShowUI(apiResponse)) {
+        hideMapUI();
+        return;
+      }
+      displayPOIs(apiResponse);
     }
   } catch (e) {
     console.error('Parse error:', e);
