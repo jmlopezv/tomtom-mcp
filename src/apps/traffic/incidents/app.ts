@@ -27,8 +27,9 @@ let pendingData: any = null;
   trafficFlowModule = await TrafficFlowModule.get(map);
 
   // Enable TrafficIncidentsModule for live incidents with built-in icons
-  trafficIncidentsModule = await TrafficIncidentsModule.get(map);
+  trafficIncidentsModule = await TrafficIncidentsModule.get(map, { visible: true });
   trafficIncidentsModule.setVisible(true);
+  trafficIncidentsModule.setIconsVisible(true); // Explicitly enable incident icons
   trafficFlowModule.setVisible(true);
 
   // Add map controls for theme and traffic (pass existing traffic module)
@@ -39,15 +40,20 @@ let pendingData: any = null;
     externalTrafficModule: trafficFlowModule,
   });
 
-  map.mapLibreMap.on('load', () => {
+  // Handle map ready state - check if already loaded or wait for load event
+  const onReady = () => {
     mapReady = true;
-
-    // Process pending data if any
     if (pendingData) {
       processIncidentData(pendingData);
       pendingData = null;
     }
-  });
+  };
+
+  if (map.mapLibreMap.loaded()) {
+    onReady();
+  } else {
+    map.mapLibreMap.on('load', onReady);
+  }
 })();
 
 function processIncidentData(data: any) {

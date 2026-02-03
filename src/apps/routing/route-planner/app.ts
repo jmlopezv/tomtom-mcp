@@ -32,15 +32,20 @@ let pendingData: any = null;
     showThemeToggle: true,
   });
 
-  map.mapLibreMap.on('load', () => {
+  // Handle map ready state - check if already loaded or wait for load event
+  const onReady = () => {
     mapReady = true;
-
-    // Process pending data if any
     if (pendingData) {
       processRouteData(pendingData);
       pendingData = null;
     }
-  });
+  };
+
+  if (map.mapLibreMap.loaded()) {
+    onReady();
+  } else {
+    map.mapLibreMap.on('load', onReady);
+  }
 })();
 
 function processRouteData(apiResponse: any) {

@@ -24,9 +24,12 @@ const map = new TomTomMap({
   },
 });
 
-// Initialize PlacesModule
+// State tracking for initialization
 let placesModule: PlacesModule | null = null;
+let isReady = false;
+let pendingData: any = null;
 
+// Initialize modules
 (async () => {
   placesModule = await PlacesModule.get(map, {
     text: {
@@ -47,22 +50,37 @@ let placesModule: PlacesModule | null = null;
     showTrafficToggle: true,
     showThemeToggle: true,
   });
+
+  // Handle map ready state - check if already loaded or wait for load event
+  const onReady = () => {
+    isReady = true;
+    if (pendingData) {
+      processData(pendingData);
+      pendingData = null;
+    }
+  };
+
+  if (map.mapLibreMap.loaded()) {
+    onReady();
+  } else {
+    map.mapLibreMap.on('load', onReady);
+  }
 })();
 
-// Display POIs on map
-async function displayPOIs(apiResponse: any) {
+// Process the data once ready
+function processData(apiResponse: any) {
   if (!placesModule) return;
 
   // Use SDK's built-in parser for correct format
   const searchResult = parseSearchResponse(apiResponse);
 
   if (!searchResult.features?.length) {
-    await placesModule.clear();
+    placesModule.clear();
     return;
   }
 
   // Show places using SDK-parsed format
-  await placesModule.show(searchResult.features as any);
+  placesModule.show(searchResult.features as any);
 
   // Fit bounds using SDK utility
   const bbox = bboxFromGeoJSON(searchResult);
@@ -72,6 +90,15 @@ async function displayPOIs(apiResponse: any) {
       maxZoom: 15,
     });
   }
+}
+
+// Display POIs on map - queues data if not ready
+async function displayPOIs(apiResponse: any) {
+  if (!isReady || !placesModule) {
+    pendingData = apiResponse;
+    return;
+  }
+  processData(apiResponse);
 }
 
 // Initialize MCP App

@@ -17,7 +17,11 @@ const map = new TomTomMap({
   mapLibre: { container: 'sdk-map', center: [4.8156, 52.4414], zoom: 8 },
 });
 
+// State tracking for initialization
 let placesModule: PlacesModule | null = null;
+let isReady = false;
+let pendingData: any = null;
+
 const rangeSourceId = 'range-source';
 const rangeFillId = 'range-fill';
 const rangeLineId = 'range-line';
@@ -35,19 +39,32 @@ const rangeLineId = 'range-line';
     showThemeToggle: true,
   });
 
-  map.mapLibreMap.on('load', () => {
+  // Setup map layers and handle ready state
+  const setupLayers = () => {
     map.mapLibreMap.addSource(rangeSourceId, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.mapLibreMap.addLayer({ id: rangeFillId, type: 'fill', source: rangeSourceId, paint: { 'fill-color': '#4a90e2', 'fill-opacity': 0.3 } });
     map.mapLibreMap.addLayer({ id: rangeLineId, type: 'line', source: rangeSourceId, paint: { 'line-color': '#4a90e2', 'line-width': 2 } });
-  });
+
+    isReady = true;
+    if (pendingData) {
+      processData(pendingData);
+      pendingData = null;
+    }
+  };
+
+  if (map.mapLibreMap.loaded()) {
+    setupLayers();
+  } else {
+    map.mapLibreMap.on('load', setupLayers);
+  }
 })();
 
-async function displayRange(apiResponse: any) {
+function processData(apiResponse: any) {
   // Use SDK's built-in parser for correct format
   const rangeResult = parseReachableRangeResponse(apiResponse);
 
   if (!rangeResult?.features?.length) {
-    await clear();
+    clear();
     return;
   }
 
@@ -62,7 +79,7 @@ async function displayRange(apiResponse: any) {
     // Show center marker if available in properties
     const center = rangeFeature.properties?.center;
     if (placesModule && center) {
-      await placesModule.show([{
+      placesModule.show([{
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [center.longitude, center.latitude] },
         properties: { label: 'Center' },
@@ -77,6 +94,14 @@ async function displayRange(apiResponse: any) {
       });
     }
   }
+}
+
+async function displayRange(apiResponse: any) {
+  if (!isReady) {
+    pendingData = apiResponse;
+    return;
+  }
+  processData(apiResponse);
 }
 
 async function clear() {

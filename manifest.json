@@ -16,9 +16,8 @@
     "type": "node",
     "entry_point": "bin/tomtom-mcp.js",
     "mcp_config": {
-      "command": "/usr/bin/env",
+      "command": "node",
       "args": [
-        "node",
         "${__dirname}/bin/tomtom-mcp.js"
       ],
       "env": {
@@ -111,7 +110,6 @@
     ],
     "runtimes": {
       "node": ">=22.0.0"
-    },
-    "notes": "For Claude Desktop, turn OFF 'Use Built-in Node.js for MCP' in advanced settings."
+    }
   }
 }

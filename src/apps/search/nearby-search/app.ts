@@ -18,7 +18,10 @@ const map = new TomTomMap({
   mapLibre: { container: 'sdk-map', center: [4.8156, 52.4414], zoom: 8 },
 });
 
+// State tracking for initialization
 let placesModule: PlacesModule | null = null;
+let isReady = false;
+let pendingData: any = null;
 
 (async () => {
   placesModule = await PlacesModule.get(map, {
@@ -35,20 +38,35 @@ let placesModule: PlacesModule | null = null;
     showTrafficToggle: true,
     showThemeToggle: true,
   });
+
+  // Handle map ready state - check if already loaded or wait for load event
+  const onReady = () => {
+    isReady = true;
+    if (pendingData) {
+      processData(pendingData);
+      pendingData = null;
+    }
+  };
+
+  if (map.mapLibreMap.loaded()) {
+    onReady();
+  } else {
+    map.mapLibreMap.on('load', onReady);
+  }
 })();
 
-async function displayResults(apiResponse: any) {
+function processData(apiResponse: any) {
   if (!placesModule) return;
 
   // Use SDK's built-in parser for correct format
   const searchResult = parseSearchResponse(apiResponse);
 
   if (!searchResult.features?.length) {
-    await placesModule.clear();
+    placesModule.clear();
     return;
   }
 
-  await placesModule.show(searchResult.features as any);
+  placesModule.show(searchResult.features as any);
 
   // Fit bounds using SDK utility
   const bbox = bboxFromGeoJSON(searchResult);
@@ -58,6 +76,14 @@ async function displayResults(apiResponse: any) {
       maxZoom: 15,
     });
   }
+}
+
+async function displayResults(apiResponse: any) {
+  if (!isReady || !placesModule) {
+    pendingData = apiResponse;
+    return;
+  }
+  processData(apiResponse);
 }
 
 const app = new App({ name: 'TomTom Nearby Search', version: '1.0.0' });
