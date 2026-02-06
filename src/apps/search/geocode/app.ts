@@ -9,38 +9,66 @@ import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
 import { parseGeocodingResponse } from '../../shared/sdk-parsers';
-import { shouldShowUI, hideMapUI, showMapUI } from '../../shared/ui-visibility';
+import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
+import { extractFullData } from '../../shared/decompress';
 import { ensureTomTomConfigured } from '../../shared/sdk-config';
 import './styles.css';
 
-// Module-level state
+// State tracking - map initialized lazily only when show_ui is true
+let map: TomTomMap | null = null;
+let placesModule: PlacesModule | null = null;
 let isReady = false;
 let pendingData: any = null;
 
-let resolveConnectedApp: (app: App) => void;
-const connectedAppPromise = new Promise<App>((resolve, _) => {
-  resolveConnectedApp = resolve;
-});
+// App instance created early so we can reference it
+const app = new App({ name: 'TomTom Geocode', version: '1.0.0' });
 
-const mapPromise = (async () => {
-  const app = await connectedAppPromise;
+async function initializeMap() {
+  if (map) return; // Already initialized
+
+  // Ensure TomTom SDK is configured with API key from server
   await ensureTomTomConfigured(app);
-  return new TomTomMap({
+
+  map = new TomTomMap({
     mapLibre: { container: 'sdk-map', center: [4.8156, 52.4414], zoom: 8 },
   });
-})();
 
-const placesModulePromise = (async () => {
-  const map = await mapPromise;
-  return await PlacesModule.get(map, {
+  placesModule = await PlacesModule.get(map, {
     text: { title: (p: any) => p.properties.address?.freeformAddress || 'Unknown' },
     theme: 'pin',
   });
-})();
 
-async function processData(apiResponse: any) {
-  const placesModule = await placesModulePromise;
-  const map = await mapPromise;
+  // Setup click handlers for POI popups
+  setupPoiPopups(map, placesModule);
+
+  // Add map controls for theme and traffic
+  await createMapControls(map, {
+    position: 'top-right',
+    showTrafficToggle: true,
+    showThemeToggle: true,
+  });
+
+  // Handle map ready state
+  return new Promise<void>((resolve) => {
+    const onReady = () => {
+      isReady = true;
+      if (pendingData) {
+        processData(pendingData);
+        pendingData = null;
+      }
+      resolve();
+    };
+
+    if (map!.mapLibreMap.loaded()) {
+      onReady();
+    } else {
+      map!.mapLibreMap.on('load', onReady);
+    }
+  });
+}
+
+function processData(apiResponse: any) {
+  if (!placesModule || !map) return;
 
   // Use SDK's built-in parser for correct format
   const geocodeResult = parseGeocodingResponse(apiResponse);
@@ -63,102 +91,35 @@ async function processData(apiResponse: any) {
 }
 
 async function displayResults(apiResponse: any) {
-  if (!isReady) {
+  if (!isReady || !placesModule) {
     pendingData = apiResponse;
     return;
   }
-  await processData(apiResponse);
-}
-
-// Initialize the app first
-const app = new App({ name: 'TomTom Geocode', version: '1.0.0' });
-
-/**
- * Fetch full visualization data from the server.
- */
-async function fetchVisualizationData(visualizationId: string): Promise<any | null> {
-  try {
-    const result = await app.callServerTool({
-      name: 'tomtom-get-search-visualization-data',
-      arguments: { visualizationId },
-    });
-    if (result.isError) return null;
-    if (result.content[0]?.type === 'text') {
-      return JSON.parse(result.content[0].text);
-    }
-    return null;
-  } catch (e) {
-    console.error('Failed to fetch visualization data:', e);
-    return null;
-  }
+  processData(apiResponse);
 }
 
 app.ontoolresult = async (r) => {
+  if (r.isError) return;
   try {
-    if (r.content[0].type === 'text') {
-      const apiResponse = JSON.parse(r.content[0].text);
-      if (!shouldShowUI(apiResponse)) {
-        hideMapUI();
-        return;
-      }
-      showMapUI();
-
-      const visualizationId = apiResponse._meta?.visualizationId;
-      if (visualizationId) {
-        const fullData = await fetchVisualizationData(visualizationId);
-        if (fullData) {
-          displayResults(fullData);
-          return;
-        }
-      }
-      displayResults(apiResponse);
+    if (r.content[0].type !== 'text') return;
+    const agentResponse = JSON.parse(r.content[0].text);
+    if (!shouldShowUI(agentResponse)) {
+      hideMapUI();
+      return;
     }
-  } catch (e) { console.error(e); }
+    // Only initialize map when we actually need to show UI
+    showMapUI();
+    await initializeMap();
+    displayResults(extractFullData(agentResponse));
+  } catch (e) {
+    console.error(e);
+  }
 };
 
 app.onteardown = async () => {
   closePoiPopup();
-  const placesModule = await placesModulePromise;
-  await placesModule.clear();
+  if (placesModule) await placesModule.clear();
   return {};
 };
 
-// Async initialization after connection
-(async () => {
-  try {
-    await app.connect();
-    // @ts-ignore
-    resolveConnectedApp(app);
-
-    // Wait for map and modules to be initialized
-    const map = await mapPromise;
-    const placesModule = await placesModulePromise;
-
-    // Setup click handlers for POI popups
-    setupPoiPopups(map, placesModule);
-
-    // Add map controls for theme and traffic
-    await createMapControls(map, {
-      position: 'top-right',
-      showTrafficToggle: true,
-      showThemeToggle: true,
-    });
-
-    // Handle map ready state - check if already loaded or wait for load event
-    const onReady = async () => {
-      isReady = true;
-      if (pendingData) {
-        await processData(pendingData);
-        pendingData = null;
-      }
-    };
-
-    if (map.mapLibreMap.loaded()) {
-      await onReady();
-    } else {
-      map.mapLibreMap.on('load', onReady);
-    }
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-  }
-})();
+app.connect();
