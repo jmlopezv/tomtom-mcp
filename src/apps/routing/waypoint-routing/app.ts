@@ -3,17 +3,15 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { App } from "@modelcontextprotocol/ext-apps";
-import { TomTomConfig, bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
-import { TomTomMap, RoutingModule } from "@tomtom-org/maps-sdk/map";
-import { createMapControls } from "../../shared/map-controls";
-import { parseRoutingResponse, extractWaypointsFromRoutes } from "../../shared/sdk-parsers";
-import { shouldShowUI, showMapUI, hideMapUI } from "../../shared/ui-visibility";
-import { extractFullData } from "../../shared/decompress";
-import { API_KEY } from "../../shared/config";
-import "./styles.css";
-
-TomTomConfig.instance.put({ apiKey: API_KEY, language: "en-GB" });
+import { App } from '@modelcontextprotocol/ext-apps';
+import { bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
+import { TomTomMap, RoutingModule } from '@tomtom-org/maps-sdk/map';
+import { createMapControls } from '../../shared/map-controls';
+import { parseRoutingResponse, extractWaypointsFromRoutes } from '../../shared/sdk-parsers';
+import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
+import { extractFullData } from '../../shared/decompress';
+import { ensureTomTomConfigured } from '../../shared/sdk-config';
+import './styles.css';
 
 // State tracking - map initialized lazily only when show_ui is true
 let map: TomTomMap | null = null;
@@ -21,18 +19,24 @@ let routingModule: RoutingModule | null = null;
 let mapReady = false;
 let pendingData: any = null;
 
+// App instance created early so we can reference it
+const app = new App({ name: 'TomTom Waypoint Routing', version: '1.0.0' });
+
 async function initializeMap() {
   if (map) return; // Already initialized
 
+  // Ensure TomTom SDK is configured with API key from server
+  await ensureTomTomConfigured(app);
+
   map = new TomTomMap({
-    mapLibre: { container: "sdk-map", center: [4.8156, 52.4414], zoom: 7 },
+    mapLibre: { container: 'sdk-map', center: [4.8156, 52.4414], zoom: 7 },
   });
 
   routingModule = await RoutingModule.get(map);
 
   // Add map controls for theme and traffic
   await createMapControls(map, {
-    position: "top-right",
+    position: 'top-right',
     showTrafficToggle: true,
     showThemeToggle: true,
   });
@@ -51,7 +55,7 @@ async function initializeMap() {
     if (map!.mapLibreMap.loaded()) {
       onReady();
     } else {
-      map!.mapLibreMap.on("load", onReady);
+      map!.mapLibreMap.on('load', onReady);
     }
   });
 }
@@ -61,9 +65,9 @@ function processRouteData(apiResponse: any) {
 
   // Use SDK's built-in parser for correct format
   const routes = parseRoutingResponse(apiResponse, {
-    language: "en-GB",
-    units: "metric",
-  });
+    language: 'en-GB',
+    units: 'metric',
+  } as any);
 
   if (!routes.features?.length) {
     clear();
@@ -88,10 +92,9 @@ function processRouteData(apiResponse: any) {
 }
 
 async function clear() {
-  if (routingModule) {
-    await routingModule.clearRoutes();
-    await routingModule.clearWaypoints();
-  }
+  if (!routingModule) return;
+  await routingModule.clearRoutes();
+  await routingModule.clearWaypoints();
 }
 
 async function displayRoute(data: any) {
@@ -102,12 +105,10 @@ async function displayRoute(data: any) {
   processRouteData(data);
 }
 
-const app = new App({ name: "TomTom Waypoint Routing", version: "1.0.0" });
-
 app.ontoolresult = async (r) => {
   if (r.isError) return;
   try {
-    if (r.content[0].type !== "text") return;
+    if (r.content[0].type !== 'text') return;
     const agentResponse = JSON.parse(r.content[0].text);
     if (!shouldShowUI(agentResponse)) {
       hideMapUI();
@@ -118,7 +119,7 @@ app.ontoolresult = async (r) => {
     await initializeMap();
     displayRoute(extractFullData(agentResponse));
   } catch (e) {
-    console.error("Error parsing route data:", e);
+    console.error('Error parsing route data:', e);
   }
 };
 

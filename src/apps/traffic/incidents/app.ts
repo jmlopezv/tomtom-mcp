@@ -3,16 +3,13 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { App } from "@modelcontextprotocol/ext-apps";
-import { TomTomConfig } from "@tomtom-org/maps-sdk/core";
-import { TomTomMap, TrafficFlowModule, TrafficIncidentsModule } from "@tomtom-org/maps-sdk/map";
-import { createMapControls } from "../../shared/map-controls";
-import { shouldShowUI, showMapUI, hideMapUI } from "../../shared/ui-visibility";
-import { extractFullData } from "../../shared/decompress";
-import { API_KEY } from "../../shared/config";
-import "./styles.css";
-
-TomTomConfig.instance.put({ apiKey: API_KEY, language: "en-GB" });
+import { App } from '@modelcontextprotocol/ext-apps';
+import { TomTomMap, TrafficFlowModule, TrafficIncidentsModule } from '@tomtom-org/maps-sdk/map';
+import { createMapControls } from '../../shared/map-controls';
+import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
+import { extractFullData } from '../../shared/decompress';
+import { ensureTomTomConfigured } from '../../shared/sdk-config';
+import './styles.css';
 
 // State tracking - map initialized lazily only when show_ui is true
 let map: TomTomMap | null = null;
@@ -21,11 +18,17 @@ let trafficIncidentsModule: TrafficIncidentsModule | null = null;
 let mapReady = false;
 let pendingData: any = null;
 
+// App instance created early so we can reference it
+const app = new App({ name: 'TomTom Traffic Incidents', version: '1.0.0' });
+
 async function initializeMap() {
   if (map) return; // Already initialized
 
+  // Ensure TomTom SDK is configured with API key from server
+  await ensureTomTomConfigured(app);
+
   map = new TomTomMap({
-    mapLibre: { container: "sdk-map", center: [-74.0, 40.75], zoom: 10 },
+    mapLibre: { container: 'sdk-map', center: [-74.0, 40.75], zoom: 10 },
   });
 
   // Enable TrafficFlowModule for background traffic flow visualization
@@ -39,7 +42,7 @@ async function initializeMap() {
 
   // Add map controls for theme and traffic (pass existing traffic module)
   await createMapControls(map, {
-    position: "top-right",
+    position: 'top-right',
     showTrafficToggle: true,
     showThemeToggle: true,
     externalTrafficModule: trafficFlowModule,
@@ -59,7 +62,7 @@ async function initializeMap() {
     if (map!.mapLibreMap.loaded()) {
       onReady();
     } else {
-      map!.mapLibreMap.on("load", onReady);
+      map!.mapLibreMap.on('load', onReady);
     }
   });
 }
@@ -75,9 +78,9 @@ function processIncidentData(data: any) {
     incidents.forEach((inc: any) => {
       const coords = inc.geometry?.coordinates;
       if (!coords) return;
-      if (inc.geometry.type === "LineString") {
+      if (inc.geometry.type === 'LineString') {
         coords.forEach((c: number[]) => bounds.push(c));
-      } else if (inc.geometry.type === "Point") {
+      } else if (inc.geometry.type === 'Point') {
         bounds.push(coords);
       }
     });
@@ -121,12 +124,10 @@ async function displayIncidents(data: any) {
   processIncidentData(data);
 }
 
-const app = new App({ name: "TomTom Traffic Incidents", version: "1.0.0" });
-
 app.ontoolresult = async (r) => {
   if (r.isError) return;
   try {
-    if (r.content[0].type !== "text") return;
+    if (r.content[0].type !== 'text') return;
     const agentResponse = JSON.parse(r.content[0].text);
     if (!shouldShowUI(agentResponse)) {
       hideMapUI();
@@ -137,7 +138,7 @@ app.ontoolresult = async (r) => {
     await initializeMap();
     displayIncidents(extractFullData(agentResponse));
   } catch (e) {
-    console.error("Error parsing incident data:", e);
+    console.error('Error parsing incident data:', e);
   }
 };
 
