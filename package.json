@@ -59,6 +59,7 @@
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "maplibre-gl": "^5.17.0",
+    "node-cache": "^5.1.2",
     "node-fetch": "^3.3.2",
     "pako": "^2.1.0",
     "pino": "^10.1.0",

@@ -112,7 +112,7 @@ app.ontoolresult = async (r) => {
     // Only initialize map when we actually need to show UI
     showMapUI();
     await initializeMap();
-    displayResults(extractFullData(agentResponse));
+    displayResults(await extractFullData(app, agentResponse));
   } catch (e) {
     console.error(e);
   }

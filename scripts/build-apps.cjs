@@ -69,12 +69,7 @@ async function buildApp(app) {
         rollupOptions: {
           input: app.htmlPath,
         },
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: false,
-          },
-        },
+        minify: 'esbuild',  // Much faster than terser (~100x)
       },
     });
     return { app, success: true };

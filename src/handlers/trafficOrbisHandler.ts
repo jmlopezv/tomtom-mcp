@@ -59,9 +59,9 @@ export function createTrafficHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimTrafficResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Traffic lookup failed");
       return {

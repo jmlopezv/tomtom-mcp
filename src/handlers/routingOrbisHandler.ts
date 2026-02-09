@@ -52,9 +52,9 @@ export function createRoutingHandler() {
         };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimRoutingResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Routing failed");
       return {
@@ -84,9 +84,9 @@ export function createWaypointRoutingHandler() {
         };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimRoutingResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Multi-waypoint routing failed");
       return {
@@ -134,9 +134,9 @@ export function createReachableRangeHandler() {
         };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimReachableRangeResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Reachable range failed");
       return {

@@ -117,7 +117,7 @@ app.ontoolresult = async (r) => {
     // Only initialize map when we actually need to show UI
     showMapUI();
     await initializeMap();
-    displayRoute(extractFullData(agentResponse));
+    displayRoute(await extractFullData(app, agentResponse));
   } catch (e) {
     console.error('Error parsing route data:', e);
   }

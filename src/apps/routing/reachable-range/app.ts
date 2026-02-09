@@ -9,6 +9,7 @@ import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
 import { createMapControls } from '../../shared/map-controls';
 import { parseReachableRangeResponse } from '../../shared/sdk-parsers';
 import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
+import { extractFullData } from '../../shared/decompress';
 import { ensureTomTomConfigured } from '../../shared/sdk-config';
 import './styles.css';
 
@@ -151,8 +152,8 @@ app.ontoolresult = async (r) => {
       // Only initialize map when we actually need to show UI
       showMapUI();
       await initializeMap();
-      // Reachable range doesn't use compression (no trimming needed for this response type)
-      displayRange(apiResponse);
+      // Fetch full data from cache using viz_id
+      displayRange(await extractFullData(app, apiResponse));
     }
   } catch (e) {
     console.error(e);

@@ -364,11 +364,11 @@ describe("trimReachableRangeResponse", () => {
 });
 
 describe("buildCompressedResponse", () => {
-  it("should build MCP response with compressed full data when show_ui is true", () => {
+  it("should build MCP response with viz_id when show_ui is true", async () => {
     const trimmedData = { summary: { query: "test" } };
     const fullData = { summary: { query: "test", queryTime: 42 }, results: [] };
 
-    const response = buildCompressedResponse(trimmedData, fullData, true);
+    const response = await buildCompressedResponse(trimmedData, fullData, true);
 
     expect(response.content).toHaveLength(1);
     expect(response.content[0].type).toBe("text");
@@ -376,35 +376,39 @@ describe("buildCompressedResponse", () => {
     const parsed = JSON.parse(response.content[0].text);
     expect(parsed.summary.query).toBe("test");
     expect(parsed._meta.show_ui).toBe(true);
-    expect(parsed._meta._compressed).toBeDefined();
-    expect(typeof parsed._meta._compressed).toBe("string");
-    // Compressed data should be base64 encoded
-    expect(parsed._meta._compressed).toMatch(/^[A-Za-z0-9+/]+=*$/);
-  });
-
-  it("should build MCP response without compressed data when show_ui is false", () => {
-    const trimmedData = { summary: { query: "test" } };
-    const fullData = { summary: { query: "test", queryTime: 42 }, results: [] };
-
-    const response = buildCompressedResponse(trimmedData, fullData, false);
-
-    const parsed = JSON.parse(response.content[0].text);
-    expect(parsed._meta.show_ui).toBe(false);
+    expect(parsed._meta.viz_id).toBeDefined();
+    expect(typeof parsed._meta.viz_id).toBe("string");
+    // viz_id should be a UUID format
+    expect(parsed._meta.viz_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+    // Should not have _compressed (old format)
     expect(parsed._meta._compressed).toBeUndefined();
   });
 
-  it("should default to show_ui true", () => {
+  it("should build MCP response without viz_id when show_ui is false", async () => {
+    const trimmedData = { summary: { query: "test" } };
+    const fullData = { summary: { query: "test", queryTime: 42 }, results: [] };
+
+    const response = await buildCompressedResponse(trimmedData, fullData, false);
+
+    const parsed = JSON.parse(response.content[0].text);
+    expect(parsed._meta.show_ui).toBe(false);
+    expect(parsed._meta.viz_id).toBeUndefined();
+  });
+
+  it("should default to show_ui true", async () => {
     const trimmedData = { data: "test" };
     const fullData = { data: "test", extra: "info" };
 
-    const response = buildCompressedResponse(trimmedData, fullData);
+    const response = await buildCompressedResponse(trimmedData, fullData);
 
     const parsed = JSON.parse(response.content[0].text);
     expect(parsed._meta.show_ui).toBe(true);
-    expect(parsed._meta._compressed).toBeDefined();
+    expect(parsed._meta.viz_id).toBeDefined();
   });
 
-  it("should preserve trimmed data in response", () => {
+  it("should preserve trimmed data in response", async () => {
     const trimmedData = {
       summary: { query: "Amsterdam", numResults: 5 },
       results: [{ id: "1", name: "Place 1" }],
@@ -414,7 +418,7 @@ describe("buildCompressedResponse", () => {
       results: [{ id: "1", name: "Place 1", extraData: "lots of stuff" }],
     };
 
-    const response = buildCompressedResponse(trimmedData, fullData, true);
+    const response = await buildCompressedResponse(trimmedData, fullData, true);
 
     const parsed = JSON.parse(response.content[0].text);
     expect(parsed.summary.query).toBe("Amsterdam");

@@ -44,9 +44,9 @@ export function createGeocodeHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Geocoding failed");
       return {
@@ -75,9 +75,9 @@ export function createReverseGeocodeHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Reverse geocoding failed");
       return {
@@ -102,9 +102,9 @@ export function createFuzzySearchHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Fuzzy search failed");
       return {
@@ -129,9 +129,9 @@ export function createPoiSearchHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ POI search failed");
       return {
@@ -160,9 +160,9 @@ export function createNearbySearchHandler() {
         return { content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }] };
       }
 
-      // Trimmed for agent, compressed full data for Apps
+      // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchResponse(result, BACKEND);
-      return buildCompressedResponse(trimmed, result, show_ui);
+      return await buildCompressedResponse(trimmed, result, show_ui);
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Nearby search failed");
       return {

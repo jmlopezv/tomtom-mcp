@@ -136,7 +136,7 @@ app.ontoolresult = async (r) => {
     // Only initialize map when we actually need to show UI
     showMapUI();
     await initializeMap();
-    displayIncidents(extractFullData(agentResponse));
+    displayIncidents(await extractFullData(app, agentResponse));
   } catch (e) {
     console.error('Error parsing incident data:', e);
   }

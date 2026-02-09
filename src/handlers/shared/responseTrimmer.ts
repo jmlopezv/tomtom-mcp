@@ -17,7 +17,7 @@
  * Handles backend-specific differences between Genesis and Orbis APIs.
  */
 
-import { gzipSync } from "zlib";
+import { storeVizData } from "../../services/cache/vizCache";
 
 export type Backend = "genesis" | "orbis";
 
@@ -331,19 +331,37 @@ export function trimReachableRangeResponse(response: unknown, _backend?: Backend
   return trimmed;
 }
 
-/** Gzip compress and base64 encode data */
-function compressData(data: any): string {
-  return gzipSync(JSON.stringify(data)).toString("base64");
-}
-
 /**
- * Build MCP response with trimmed data for agent and compressed full data for Apps.
+ * Build MCP response with trimmed data for agent and viz_id for Apps to fetch full data from cache.
+ * Full data is stored in cache with short TTL for Apps to retrieve via tomtom-get-viz-data tool.
  */
-export function buildCompressedResponse<T>(
+export async function buildCompressedResponse<T>(
   trimmedData: T,
   fullData: T,
   showUI: boolean = true
-): MCPResponse {
+): Promise<MCPResponse> {
+  // If UI is disabled, don't cache the full data
+  if (!showUI) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              ...trimmedData,
+              _meta: { show_ui: false },
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  // Store full data in cache and get unique viz_id
+  const vizId = await storeVizData(fullData);
+
   return {
     content: [
       {
@@ -351,9 +369,7 @@ export function buildCompressedResponse<T>(
         text: JSON.stringify(
           {
             ...trimmedData,
-            _meta: showUI
-              ? { show_ui: true, _compressed: compressData(fullData) }
-              : { show_ui: false },
+            _meta: { show_ui: true, viz_id: vizId },
           },
           null,
           2
