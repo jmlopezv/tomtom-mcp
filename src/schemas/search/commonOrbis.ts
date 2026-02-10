@@ -22,9 +22,9 @@ export const uiVisibilityParam = {
   show_ui: z
     .boolean()
     .optional()
-    .default(true)
+    .default(false)
     .describe(
-      "Whether to display the interactive map widget. Set to false for intermediate/background operations where visualization is not needed (e.g., geocoding as part of a routing workflow). Default: true"
+      "Whether to display the interactive map widget. Set to true when visualization is needed for the user. Default: false"
     ),
 };
 

@@ -62,3 +62,7 @@ test-*.js
 .history
 
 MCP_APPS_implementation_reference/
+
+# Binary distribution build artifacts (temp folders only, .mcpb is tracked)
+.mcpb-build/
+binary-dist/

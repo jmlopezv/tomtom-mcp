@@ -402,7 +402,8 @@ export const tomtomDynamicMapSchema = {
   show_ui: z
     .boolean()
     .optional()
+    .default(false)
     .describe(
-      "Enable interactive MCP app visualization. When true (default), the response includes a viz_id that allows an MCP App to render an interactive version of the map with zoom, pan, and click capabilities. Set to false if you only need the static PNG image. DEFAULT: true."
+      "Enable interactive MCP app visualization. When true, the response includes a viz_id that allows an MCP App to render an interactive version of the map with zoom, pan, and click capabilities. Set to false if you only need the static PNG image. DEFAULT: false."
     ),
 };
