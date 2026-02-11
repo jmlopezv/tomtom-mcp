@@ -48,10 +48,10 @@ function trimSearchAlongRouteResponse(response: any): any {
 
       // Remove heavy sections data
       if (props.sections) {
-        delete props.sections.guidance;    // Turn-by-turn instructions
-        delete props.sections.speedLimit;  // Hundreds of speed limit entries
-        delete props.sections.travelMode;  // Travel mode segments
-        delete props.sections.lane;        // Lane guidance data
+        delete props.sections.guidance; // Turn-by-turn instructions
+        delete props.sections.speedLimit; // Hundreds of speed limit entries
+        delete props.sections.travelMode; // Travel mode segments
+        delete props.sections.lane; // Lane guidance data
       }
 
       // Remove point-by-point progress
@@ -104,11 +104,7 @@ export function createSearchAlongRouteHandler() {
   return async (params: any) => {
     logger.info("Search along route");
     try {
-      const {
-        show_ui = true,
-        response_detail = "compact",
-        ...searchParams
-      } = params;
+      const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
       const result = await searchAlongRoute(searchParams);
 

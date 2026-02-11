@@ -100,10 +100,7 @@ export async function searchAlongRoute(params: SearchAlongRouteParams): Promise<
 
   const searchResult = await search(searchParams);
 
-  logger.debug(
-    { poiCount: searchResult.features?.length },
-    "Search along route completed"
-  );
+  logger.debug({ poiCount: searchResult.features?.length }, "Search along route completed");
 
   // Return combined result with route and POIs
   return {

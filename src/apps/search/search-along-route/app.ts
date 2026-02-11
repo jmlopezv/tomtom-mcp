@@ -7,16 +7,16 @@
  * Data comes from SDK (route + POIs both in GeoJSON format).
  */
 
-import { App } from '@modelcontextprotocol/ext-apps';
-import { bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
-import { TomTomMap, RoutingModule, PlacesModule } from '@tomtom-org/maps-sdk/map';
-import { createMapControls } from '../../shared/map-controls';
-import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
-import { extractWaypointsFromRoutes } from '../../shared/sdk-parsers';
-import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
-import { extractFullData } from '../../shared/decompress';
-import { ensureTomTomConfigured } from '../../shared/sdk-config';
-import './styles.css';
+import { App } from "@modelcontextprotocol/ext-apps";
+import { bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
+import { TomTomMap, RoutingModule, PlacesModule } from "@tomtom-org/maps-sdk/map";
+import { createMapControls } from "../../shared/map-controls";
+import { setupPoiPopups, closePoiPopup } from "../../shared/poi-popup";
+import { extractWaypointsFromRoutes } from "../../shared/sdk-parsers";
+import { shouldShowUI, showMapUI, hideMapUI } from "../../shared/ui-visibility";
+import { extractFullData } from "../../shared/decompress";
+import { ensureTomTomConfigured } from "../../shared/sdk-config";
+import "./styles.css";
 
 let map: TomTomMap | null = null;
 let routingModule: RoutingModule | null = null;
@@ -24,7 +24,7 @@ let placesModule: PlacesModule | null = null;
 let isReady = false;
 let pendingData: any = null;
 
-const app = new App({ name: 'TomTom Search Along Route', version: '1.0.0' });
+const app = new App({ name: "TomTom Search Along Route", version: "1.0.0" });
 
 async function initializeMap() {
   if (map) return;
@@ -32,7 +32,7 @@ async function initializeMap() {
   await ensureTomTomConfigured(app);
 
   map = new TomTomMap({
-    mapLibre: { container: 'sdk-map', center: [-0.5, 51.5], zoom: 8 },
+    mapLibre: { container: "sdk-map", center: [-0.5, 51.5], zoom: 8 },
   });
 
   routingModule = await RoutingModule.get(map);
@@ -40,15 +40,15 @@ async function initializeMap() {
   placesModule = await PlacesModule.get(map, {
     text: {
       title: (place: any) =>
-        place.properties.poi?.name || place.properties.address?.freeformAddress || 'Unknown',
+        place.properties.poi?.name || place.properties.address?.freeformAddress || "Unknown",
     },
-    theme: 'pin',
+    theme: "pin",
   });
 
   setupPoiPopups(map, placesModule);
 
   await createMapControls(map, {
-    position: 'top-right',
+    position: "top-right",
     showTrafficToggle: true,
     showThemeToggle: true,
   });
@@ -66,7 +66,7 @@ async function initializeMap() {
     if (map!.mapLibreMap.loaded()) {
       onReady();
     } else {
-      map!.mapLibreMap.on('load', onReady);
+      map!.mapLibreMap.on("load", onReady);
     }
   });
 }
@@ -87,13 +87,10 @@ function processData(data: any) {
   }
 
   // Fit map to show both route and POIs
-  const allFeatures = [
-    ...(data.route?.features || []),
-    ...(data.pois?.features || []),
-  ];
+  const allFeatures = [...(data.route?.features || []), ...(data.pois?.features || [])];
 
   if (allFeatures.length) {
-    const combined = { type: 'FeatureCollection' as const, features: allFeatures };
+    const combined = { type: "FeatureCollection" as const, features: allFeatures };
     const bbox = bboxFromGeoJSON(combined);
     if (bbox) {
       map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
@@ -115,7 +112,7 @@ async function displayResults(data: any) {
 app.ontoolresult = async (r) => {
   if (r.isError) return;
   try {
-    if (r.content[0].type !== 'text') return;
+    if (r.content[0].type !== "text") return;
     const agentResponse = JSON.parse(r.content[0].text);
     if (!shouldShowUI(agentResponse)) {
       hideMapUI();
@@ -125,7 +122,7 @@ app.ontoolresult = async (r) => {
     await initializeMap();
     displayResults(await extractFullData(app, agentResponse));
   } catch (e) {
-    console.error('Error displaying search along route:', e);
+    console.error("Error displaying search along route:", e);
   }
 };
 

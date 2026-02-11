@@ -42,9 +42,7 @@ export const tomtomEvRoutingSchema = {
     .number()
     .min(0)
     .max(100)
-    .describe(
-      "Current battery charge as percentage (0-100). Example: 80 means 80% charged."
-    ),
+    .describe("Current battery charge as percentage (0-100). Example: 80 means 80% charged."),
 
   // EV Model Parameters
   maxChargeKWH: z
@@ -57,7 +55,9 @@ export const tomtomEvRoutingSchema = {
     .array(
       z.object({
         speedKMH: z.number().describe("Speed in km/h."),
-        consumptionUnitsPer100KM: z.number().describe("Energy consumption in kWh per 100km at this speed."),
+        consumptionUnitsPer100KM: z
+          .number()
+          .describe("Energy consumption in kWh per 100km at this speed."),
       })
     )
     .optional()
@@ -94,15 +94,15 @@ export const tomtomEvRoutingSchema = {
     .max(50)
     .optional()
     .default(10)
-    .describe(
-      "Minimum battery percentage to arrive at each charging stop with. Default: 10%."
-    ),
+    .describe("Minimum battery percentage to arrive at each charging stop with. Default: 10%."),
 
   // Route Options
   routeType: z
     .enum(["fast", "short", "efficient"])
     .optional()
-    .describe("Route optimization: 'fast' (time), 'short' (distance), 'efficient' (energy). Default: 'fast'."),
+    .describe(
+      "Route optimization: 'fast' (time), 'short' (distance), 'efficient' (energy). Default: 'fast'."
+    ),
 
   traffic: z
     .enum(["live", "historical"])

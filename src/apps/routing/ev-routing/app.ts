@@ -7,22 +7,22 @@
  * Data comes from SDK (already in GeoJSON Routes format) — no parseRoutingResponse() needed.
  */
 
-import { App } from '@modelcontextprotocol/ext-apps';
-import { bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
-import { TomTomMap, RoutingModule } from '@tomtom-org/maps-sdk/map';
-import { createMapControls } from '../../shared/map-controls';
-import { extractWaypointsFromRoutes } from '../../shared/sdk-parsers';
-import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
-import { extractFullData } from '../../shared/decompress';
-import { ensureTomTomConfigured } from '../../shared/sdk-config';
-import './styles.css';
+import { App } from "@modelcontextprotocol/ext-apps";
+import { bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
+import { TomTomMap, RoutingModule } from "@tomtom-org/maps-sdk/map";
+import { createMapControls } from "../../shared/map-controls";
+import { extractWaypointsFromRoutes } from "../../shared/sdk-parsers";
+import { shouldShowUI, showMapUI, hideMapUI } from "../../shared/ui-visibility";
+import { extractFullData } from "../../shared/decompress";
+import { ensureTomTomConfigured } from "../../shared/sdk-config";
+import "./styles.css";
 
 let map: TomTomMap | null = null;
 let routingModule: RoutingModule | null = null;
 let mapReady = false;
 let pendingData: any = null;
 
-const app = new App({ name: 'TomTom EV Route Planner', version: '1.0.0' });
+const app = new App({ name: "TomTom EV Route Planner", version: "1.0.0" });
 
 async function initializeMap() {
   if (map) return;
@@ -30,13 +30,13 @@ async function initializeMap() {
   await ensureTomTomConfigured(app);
 
   map = new TomTomMap({
-    mapLibre: { container: 'sdk-map', center: [-0.5, 51.5], zoom: 6 },
+    mapLibre: { container: "sdk-map", center: [-0.5, 51.5], zoom: 6 },
   });
 
   routingModule = await RoutingModule.get(map);
 
   await createMapControls(map, {
-    position: 'top-right',
+    position: "top-right",
     showTrafficToggle: true,
     showThemeToggle: true,
   });
@@ -54,7 +54,7 @@ async function initializeMap() {
     if (map!.mapLibreMap.loaded()) {
       onReady();
     } else {
-      map!.mapLibreMap.on('load', onReady);
+      map!.mapLibreMap.on("load", onReady);
     }
   });
 }
@@ -101,7 +101,7 @@ async function displayRoute(data: any) {
 app.ontoolresult = async (r) => {
   if (r.isError) return;
   try {
-    if (r.content[0].type !== 'text') return;
+    if (r.content[0].type !== "text") return;
     const agentResponse = JSON.parse(r.content[0].text);
     if (!shouldShowUI(agentResponse)) {
       hideMapUI();
@@ -111,7 +111,7 @@ app.ontoolresult = async (r) => {
     await initializeMap();
     displayRoute(await extractFullData(app, agentResponse));
   } catch (e) {
-    console.error('Error displaying EV route:', e);
+    console.error("Error displaying EV route:", e);
   }
 };
 

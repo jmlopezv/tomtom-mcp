@@ -70,18 +70,11 @@ export function createAreaSearchHandler() {
   return async (params: any) => {
     logger.info("Area/geometry search");
     try {
-      const {
-        show_ui = true,
-        response_detail = "compact",
-        ...searchParams
-      } = params;
+      const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
       const result = await searchInArea(searchParams);
 
-      logger.info(
-        { resultCount: result?.features?.length || 0 },
-        "Area search completed"
-      );
+      logger.info({ resultCount: result?.features?.length || 0 }, "Area search completed");
 
       // If full response requested, return without trimming
       if (response_detail === "full") {

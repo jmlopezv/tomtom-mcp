@@ -100,10 +100,7 @@ export async function searchInArea(params: AreaSearchParams): Promise<any> {
         ],
       ],
     });
-    logger.debug(
-      { topLeft, bottomRight },
-      "Area search with bounding box geometry via SDK"
-    );
+    logger.debug({ topLeft, bottomRight }, "Area search with bounding box geometry via SDK");
   } else {
     throw new Error(
       "At least one geometry must be provided: center+radius (circle), polygon, or boundingBox"
@@ -131,10 +128,7 @@ export async function searchInArea(params: AreaSearchParams): Promise<any> {
 
   const result = await search(searchParams);
 
-  logger.debug(
-    { resultCount: result.features?.length },
-    "Area search completed"
-  );
+  logger.debug({ resultCount: result.features?.length }, "Area search completed");
 
   return result;
 }

@@ -64,9 +64,7 @@ export async function calculateEVRoute(params: EVRoutingParams): Promise<any> {
 
   // Build locations array: origin + waypoints + destination
   // SDK expects [lng, lat] tuples (HasLngLat format)
-  const locations: Array<[number, number]> = [
-    [params.origin.lon, params.origin.lat],
-  ];
+  const locations: Array<[number, number]> = [[params.origin.lon, params.origin.lat]];
 
   if (params.waypoints) {
     for (const wp of params.waypoints) {
@@ -163,10 +161,7 @@ export async function calculateEVRoute(params: EVRoutingParams): Promise<any> {
   // Call SDK calculateRoute
   const routes = await calculateRoute(routeParams);
 
-  logger.debug(
-    { routeCount: routes.features?.length },
-    "EV route calculation completed"
-  );
+  logger.debug({ routeCount: routes.features?.length }, "EV route calculation completed");
 
   return routes;
 }

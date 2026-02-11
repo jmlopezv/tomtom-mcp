@@ -71,9 +71,7 @@ export const tomtomAreaSearchSchema = {
       }),
     })
     .optional()
-    .describe(
-      "Rectangular bounding box for area search. Use instead of center/radius or polygon."
-    ),
+    .describe("Rectangular bounding box for area search. Use instead of center/radius or polygon."),
 
   limit: z
     .number()

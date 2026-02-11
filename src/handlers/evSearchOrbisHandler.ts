@@ -84,11 +84,7 @@ export function createEVSearchHandler() {
   return async (params: any) => {
     logger.info("EV charging station search");
     try {
-      const {
-        show_ui = true,
-        response_detail = "compact",
-        ...searchParams
-      } = params;
+      const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
       const result = await searchEVStations(searchParams);
 

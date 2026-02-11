@@ -50,10 +50,10 @@ function trimEVRoutingResponse(response: any): any {
 
     // Remove heavy sections data
     if (props.sections) {
-      delete props.sections.guidance;    // Turn-by-turn instructions
-      delete props.sections.speedLimit;  // Hundreds of speed limit entries
-      delete props.sections.travelMode;  // Travel mode segments
-      delete props.sections.lane;        // Lane guidance data
+      delete props.sections.guidance; // Turn-by-turn instructions
+      delete props.sections.speedLimit; // Hundreds of speed limit entries
+      delete props.sections.travelMode; // Travel mode segments
+      delete props.sections.lane; // Lane guidance data
     }
 
     // Trim legs — keep summaries, remove verbose nested data
@@ -62,8 +62,9 @@ function trimEVRoutingResponse(response: any): any {
         const trimmedLeg: any = {};
         if (leg.summary) trimmedLeg.summary = leg.summary;
         if (leg.chargingInformationAtEndOfLeg) {
-          trimmedLeg.chargingInformationAtEndOfLeg =
-            trimChargingInfo(leg.chargingInformationAtEndOfLeg);
+          trimmedLeg.chargingInformationAtEndOfLeg = trimChargingInfo(
+            leg.chargingInformationAtEndOfLeg
+          );
         }
         return trimmedLeg;
       });
@@ -113,18 +114,11 @@ export function createEVRoutingHandler() {
   return async (params: any) => {
     logger.info("EV route calculation");
     try {
-      const {
-        show_ui = true,
-        response_detail = "compact",
-        ...routeParams
-      } = params;
+      const { show_ui = true, response_detail = "compact", ...routeParams } = params;
 
       const result = await calculateEVRoute(routeParams);
 
-      logger.info(
-        { routeCount: result?.features?.length || 0 },
-        "EV route calculation completed"
-      );
+      logger.info({ routeCount: result?.features?.length || 0 }, "EV route calculation completed");
 
       // If full response requested, return without trimming
       if (response_detail === "full") {

@@ -7,15 +7,15 @@
  * Data comes from SDK (already in GeoJSON format) — no parseSearchResponse() needed.
  */
 
-import { App } from '@modelcontextprotocol/ext-apps';
-import { bboxFromGeoJSON } from '@tomtom-org/maps-sdk/core';
-import { TomTomMap, PlacesModule } from '@tomtom-org/maps-sdk/map';
-import { createMapControls } from '../../shared/map-controls';
-import { setupPoiPopups, closePoiPopup } from '../../shared/poi-popup';
-import { shouldShowUI, showMapUI, hideMapUI } from '../../shared/ui-visibility';
-import { extractFullData } from '../../shared/decompress';
-import { ensureTomTomConfigured } from '../../shared/sdk-config';
-import './styles.css';
+import { App } from "@modelcontextprotocol/ext-apps";
+import { bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
+import { TomTomMap, PlacesModule } from "@tomtom-org/maps-sdk/map";
+import { createMapControls } from "../../shared/map-controls";
+import { setupPoiPopups, closePoiPopup } from "../../shared/poi-popup";
+import { shouldShowUI, showMapUI, hideMapUI } from "../../shared/ui-visibility";
+import { extractFullData } from "../../shared/decompress";
+import { ensureTomTomConfigured } from "../../shared/sdk-config";
+import "./styles.css";
 
 // State tracking - map initialized lazily only when show_ui is true
 let map: TomTomMap | null = null;
@@ -23,7 +23,7 @@ let placesModule: PlacesModule | null = null;
 let isReady = false;
 let pendingData: any = null;
 
-const app = new App({ name: 'TomTom EV Charging Search', version: '1.0.0' });
+const app = new App({ name: "TomTom EV Charging Search", version: "1.0.0" });
 
 async function initializeMap() {
   if (map) return;
@@ -31,22 +31,22 @@ async function initializeMap() {
   await ensureTomTomConfigured(app);
 
   map = new TomTomMap({
-    mapLibre: { container: 'sdk-map', center: [4.8156, 52.4414], zoom: 8 },
+    mapLibre: { container: "sdk-map", center: [4.8156, 52.4414], zoom: 8 },
   });
 
   placesModule = await PlacesModule.get(map, {
     text: {
       title: (place: any) =>
-        place.properties.poi?.name || place.properties.address?.freeformAddress || 'EV Station',
+        place.properties.poi?.name || place.properties.address?.freeformAddress || "EV Station",
     },
-    theme: 'pin',
+    theme: "pin",
   });
 
   // Setup click handlers for POI popups
   setupPoiPopups(map, placesModule);
 
   await createMapControls(map, {
-    position: 'top-right',
+    position: "top-right",
     showTrafficToggle: false,
     showThemeToggle: true,
   });
@@ -64,7 +64,7 @@ async function initializeMap() {
     if (map!.mapLibreMap.loaded()) {
       onReady();
     } else {
-      map!.mapLibreMap.on('load', onReady);
+      map!.mapLibreMap.on("load", onReady);
     }
   });
 }
@@ -101,7 +101,7 @@ async function displayStations(sdkResponse: any) {
 app.ontoolresult = async (r) => {
   if (r.isError) return;
   try {
-    if (r.content[0].type !== 'text') return;
+    if (r.content[0].type !== "text") return;
     const agentResponse = JSON.parse(r.content[0].text);
     if (!shouldShowUI(agentResponse)) {
       hideMapUI();
@@ -111,7 +111,7 @@ app.ontoolresult = async (r) => {
     await initializeMap();
     displayStations(await extractFullData(app, agentResponse));
   } catch (e) {
-    console.error('Error displaying EV stations:', e);
+    console.error("Error displaying EV stations:", e);
   }
 };
 

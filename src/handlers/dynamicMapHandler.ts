@@ -37,7 +37,12 @@ export function createDynamicMapHandler() {
       );
 
       // Build response content array
-      const content: Array<{ type: "image" | "text"; data?: string; mimeType?: string; text?: string }> = [
+      const content: Array<{
+        type: "image" | "text";
+        data?: string;
+        mimeType?: string;
+        text?: string;
+      }> = [
         {
           type: "image" as const,
           data: result.base64,

@@ -81,9 +81,7 @@ export async function searchEVStations(params: EVSearchParams): Promise<any> {
       features: searchResult.features.filter((feature: any) => {
         const chargingPark = feature.properties?.chargingPark;
         if (!chargingPark?.connectors) return true; // Keep if no connector data
-        return chargingPark.connectors.some(
-          (c: any) => c.ratedPowerKW >= (params.minPowerKW || 0)
-        );
+        return chargingPark.connectors.some((c: any) => c.ratedPowerKW >= (params.minPowerKW || 0));
       }),
     };
   }

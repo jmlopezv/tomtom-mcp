@@ -55,7 +55,7 @@ export interface HttpServerResult {
  */
 export function resolveFixedBackend(mapsEnv: string | undefined): Backend | null {
   const normalized = mapsEnv?.toLowerCase();
-  return (normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps") ? normalized : null;
+  return normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps" ? normalized : null;
 }
 
 /**
@@ -68,7 +68,9 @@ export function resolveBackendFromHeader(
 ): Backend {
   if (fixedBackend) return fixedBackend;
   const normalized = headerValue?.toLowerCase();
-  return (normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps") ? normalized : defaultBackend;
+  return normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps"
+    ? normalized
+    : defaultBackend;
 }
 
 async function createMcpInstance(backend: Backend): Promise<ServerInstance> {

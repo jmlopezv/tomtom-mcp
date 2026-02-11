@@ -30,12 +30,7 @@ const AREA_SEARCH_RESOURCE_URI = "ui://tomtom-search/area-search/app.html";
  */
 export async function createAreaSearchOrbisTools(server: McpServer): Promise<void> {
   // Register area search app resource
-  await registerAppResourceFromPath(
-    server,
-    AREA_SEARCH_RESOURCE_URI,
-    "search",
-    "area-search"
-  );
+  await registerAppResourceFromPath(server, AREA_SEARCH_RESOURCE_URI, "search", "area-search");
 
   // Area Search tool with UI
   registerAppTool(

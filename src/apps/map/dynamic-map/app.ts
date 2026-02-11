@@ -149,10 +149,9 @@ function setupInteractivity(mapState: CachedMapState): void {
     mlMap.on("click", markerLayerId, (e) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
-        const coordinates = (feature.geometry as { type: "Point"; coordinates: number[] }).coordinates.slice() as [
-          number,
-          number,
-        ];
+        const coordinates = (
+          feature.geometry as { type: "Point"; coordinates: number[] }
+        ).coordinates.slice() as [number, number];
         const props = (feature.properties as Record<string, unknown>) || {};
 
         const priority = props.priority as string;
