@@ -70,10 +70,10 @@ export function resolveBackendFromHeader(
 /**
  * Creates and starts the HTTP server. Exported for integration testing.
  *
- * Uses per-request transports: McpServer instances are created once at startup
- * (with tools registered), but a fresh StreamableHTTPServerTransport is created
- * for each incoming request. This follows the MCP SDK's stateless HTTP pattern
- * and avoids transport reuse issues across sequential requests.
+ * McpServer instances are pre-created at startup with tools registered.
+ * Per request, the server is disconnected from its previous transport and
+ * reconnected to a fresh one. A per-backend lock serializes this to prevent
+ * concurrent connect/disconnect races.
  */
 export async function createHttpServer(options: HttpServerOptions = {}): Promise<HttpServerResult> {
   const {
@@ -106,6 +106,9 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     availableBackends.push("tomtom-orbis-maps", "tomtom-maps");
     logger.info({ default: defaultBackend }, "MCP servers initialized (dual backend mode)");
   }
+
+  // Per-backend locks to serialize transport connect/disconnect
+  const backendLocks: Partial<Record<Backend, Promise<void>>> = {};
 
   function getBackend(req: Request): Backend {
     return resolveBackendFromHeader(
@@ -140,18 +143,37 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
         return;
       }
 
+      // Wait for any pending request on this backend to finish its connect/disconnect
+      if (backendLocks[backend]) {
+        await backendLocks[backend];
+      }
+
+      let releaseLock: () => void;
+      backendLocks[backend] = new Promise((resolve) => {
+        releaseLock = resolve;
+      });
+
       logger.debug({ requestId, backend }, "Processing MCP request");
 
-      // Create a fresh transport per request (stateless mode pattern from MCP SDK)
+      // Disconnect from previous transport (if any), then connect to fresh one
+      try {
+        await server.close();
+      } catch {
+        // Ignore — server may not be connected yet (first request)
+      }
+
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });
 
+      await server.connect(transport);
+
+      // Release lock after connect so next request can proceed
+      releaseLock!();
+
       res.on("close", () => {
         transport.close();
       });
-
-      await server.connect(transport);
 
       await runWithSessionContext(apiKey, backend, async () => {
         await transport.handleRequest(req, res, req.body);
