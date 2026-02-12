@@ -44,6 +44,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "publish:npm": "npm publish --access restricted",
+    "ui": "concurrently --names mcp,ui --prefix-colors blue,green \"node dist/indexHttp.esm.js\" \"cd ui && npm run start\"",
+    "ui:build": "cd ui && npm install && npm run build",
     "clean": "shx rm -rf dist coverage eslint-report.json",
     "prebuild": "npm run clean && node scripts/generate-version.cjs"
   },
@@ -84,6 +86,7 @@
     "@vitest/coverage-v8": "^4.0.11",
     "@vitest/ui": "^4.0.11",
     "archiver": "^7.0.1",
+    "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.5",
