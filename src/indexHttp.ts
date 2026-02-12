@@ -85,8 +85,8 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
   app.use(express.json());
   app.use(cors({
     origin: allowedOrigins?.split(",") || "*",
-    methods: ["POST", "GET"],
-    allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend"],
+    methods: ["POST", "GET", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend", "mcp-protocol-version"],
     maxAge: 86400,
   }));
 
