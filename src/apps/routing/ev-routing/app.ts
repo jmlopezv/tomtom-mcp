@@ -38,7 +38,7 @@ async function initializeMap() {
   await ensureTomTomConfigured(app);
 
   map = new TomTomMap({
-    mapLibre: { container: "sdk-map", center: [-0.5, 51.5], zoom: 6 },
+    mapLibre: { container: "sdk-map", center: [0, 20], zoom: 2 },
   });
 
   routingModule = await RoutingModule.get(map);

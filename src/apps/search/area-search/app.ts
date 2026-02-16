@@ -30,7 +30,7 @@ async function initializeMap() {
   await ensureTomTomConfigured(app);
 
   map = new TomTomMap({
-    mapLibre: { container: "sdk-map", center: [4.8156, 52.4414], zoom: 8 },
+    mapLibre: { container: "sdk-map", center: [0, 20], zoom: 2 },
   });
 
   placesModule = await PlacesModule.get(map, {

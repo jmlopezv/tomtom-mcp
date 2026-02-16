@@ -59,7 +59,7 @@ async function initializeMap() {
   injectPoiPopupStyles();
 
   map = new TomTomMap({
-    mapLibre: { container: "sdk-map", center: [-74.0, 40.75], zoom: 10 },
+    mapLibre: { container: "sdk-map", center: [0, 20], zoom: 2 },
   });
 
   // Enable TrafficFlowModule for background traffic flow visualization
