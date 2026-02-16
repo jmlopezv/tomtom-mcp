@@ -20,6 +20,7 @@ let activePopup: Popup | null = null;
 let mapInitialized = false;
 let timerIntervalId: ReturnType<typeof setInterval> | null = null;
 let lastUpdatedTimestamp: number | null = null;
+let autoPopupShown = false;
 
 const app = new App({ name: "TomTom Traffic Incidents", version: "1.0.0" });
 
@@ -76,32 +77,97 @@ async function initializeMap(): Promise<void> {
 // SDK incident event handlers
 // ---------------------------------------------------------------------------
 
+function showPopupForFeature(feature: any, lngLat: [number, number]): void {
+  if (!map) return;
+
+  if (activePopup) {
+    activePopup.remove();
+    activePopup = null;
+  }
+
+  const props = feature.properties || {};
+  const html = buildIncidentPopupHtml(props);
+
+  activePopup = new Popup({
+    closeButton: true,
+    maxWidth: "360px",
+    className: "poi-popup-container incident-popup-container",
+    offset: [0, -10],
+  })
+    .setLngLat(lngLat)
+    .setHTML(html)
+    .addTo(map.mapLibreMap);
+
+  activePopup.on("close", () => {
+    activePopup = null;
+  });
+}
+
 function setupIncidentEvents(): void {
   if (!trafficIncidentsModule || !map) return;
 
   trafficIncidentsModule.events.on("click", (feature: any, lngLat: any) => {
-    if (activePopup) {
-      activePopup.remove();
-      activePopup = null;
-    }
-
-    const props = feature.properties || {};
-    const html = buildIncidentPopupHtml(props);
-
-    activePopup = new Popup({
-      closeButton: true,
-      maxWidth: "360px",
-      className: "poi-popup-container incident-popup-container",
-      offset: [0, -10],
-    })
-      .setLngLat(lngLat)
-      .setHTML(html)
-      .addTo(map!.mapLibreMap);
+    showPopupForFeature(feature, lngLat);
   });
 
   trafficIncidentsModule.events.on("hover", () => {
     if (map) map.mapLibreMap.getCanvas().style.cursor = "pointer";
   });
+}
+
+/**
+ * Auto-open a popup on the first visible incident after map settles,
+ * so users discover that incident markers are clickable.
+ */
+function autoOpenFirstIncident(): void {
+  if (!map || !trafficIncidentsModule || autoPopupShown) return;
+
+  const gl = map.mapLibreMap;
+  let retries = 0;
+
+  const tryOpen = () => {
+    if (autoPopupShown) return;
+
+    // Find incident layers by source name (SDK uses "vectorTilesIncidents")
+    const incidentLayers = gl.getStyle().layers
+      .filter((l: any) => l.source === "vectorTilesIncidents")
+      .map((l: any) => l.id);
+
+    if (incidentLayers.length === 0) {
+      // SDK layers not ready yet, retry
+      if (retries++ < 5) gl.once("idle", tryOpen);
+      return;
+    }
+
+    const features = gl.queryRenderedFeatures(undefined, { layers: incidentLayers });
+
+    // Pick a random incident that has a description
+    const withDesc = features.filter((f: any) => f.properties?.description_0);
+    const feat = withDesc.length > 0 ? withDesc[Math.floor(Math.random() * withDesc.length)] : undefined;
+    if (!feat) {
+      if (retries++ < 5) gl.once("idle", tryOpen);
+      return;
+    }
+
+    autoPopupShown = true;
+    const geom = feat.geometry as any;
+    let lngLat: [number, number];
+
+    if (geom.type === "Point") {
+      lngLat = [geom.coordinates[0], geom.coordinates[1]];
+    } else if (geom.type === "LineString" && geom.coordinates.length > 0) {
+      // Use the midpoint of the line
+      const mid = geom.coordinates[Math.floor(geom.coordinates.length / 2)];
+      lngLat = [mid[0], mid[1]];
+    } else {
+      return;
+    }
+
+    showPopupForFeature(feat, lngLat);
+  };
+
+  // The flyTo animation takes ~2.5s, then tiles need to load.
+  gl.once("idle", tryOpen);
 }
 
 // Severity styles by magnitude_of_delay
@@ -177,10 +243,10 @@ function buildIncidentPopupHtml(props: Record<string, unknown>): string {
   return html;
 }
 
+const _escapeDiv = document.createElement("div");
 function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  _escapeDiv.textContent = text;
+  return _escapeDiv.innerHTML;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +356,7 @@ app.ontoolinput = async (params) => {
   if (bbox) flyToBbox(bbox);
 
   createLiveTrafficTimer();
+  autoOpenFirstIncident();
 };
 
 app.ontoolresult = async (r) => {
