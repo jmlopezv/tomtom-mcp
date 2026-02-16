@@ -10,6 +10,7 @@ import { createMapControls } from "../../shared/map-controls";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
 import { extractFullData } from "../../shared/decompress";
 import { ensureTomTomConfigured } from "../../shared/sdk-config";
+import { injectPoiPopupStyles } from "../../shared/poi-popup";
 import "./styles.css";
 
 // GeoJSON source/layer IDs for API-returned incidents
@@ -53,6 +54,9 @@ async function initializeMap() {
 
   // Ensure TomTom SDK is configured with API key from server
   await ensureTomTomConfigured(app);
+
+  // Inject shared popup container styles (matching POI popup design)
+  injectPoiPopupStyles();
 
   map = new TomTomMap({
     mapLibre: { container: "sdk-map", center: [-74.0, 40.75], zoom: 10 },
@@ -336,8 +340,9 @@ function setupIncidentClickHandlers(mlMap: any) {
 
       activePopup = new Popup({
         closeButton: true,
-        maxWidth: "320px",
-        offset: 10,
+        maxWidth: "380px",
+        className: "poi-popup-container",
+        offset: [0, -10],
       })
         .setLngLat(e.lngLat)
         .setHTML(html)

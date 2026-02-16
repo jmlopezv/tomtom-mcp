@@ -4,7 +4,6 @@
  */
 
 import { App } from "@modelcontextprotocol/ext-apps";
-import { bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
 import { TomTomMap, PlacesModule } from "@tomtom-org/maps-sdk/map";
 import { createMapControls } from "../../shared/map-controls";
 import { setupPoiPopups, closePoiPopup } from "../../shared/poi-popup";
@@ -70,25 +69,20 @@ async function initializeMap() {
 function processData(apiResponse: any) {
   if (!placesModule || !map) return;
 
-  // Use SDK's built-in parser for correct format
-  // Cast to any because ReverseGeocodingResponse type doesn't include 'features'
-  // even though the runtime object is a GeoJSON FeatureCollection
+  // parseRevGeoResponse returns a single Place (Feature), not a FeatureCollection.
   const revGeoResult = parseReverseGeocodingResponse(apiResponse) as any;
 
-  if (!revGeoResult.features?.length) {
+  if (!revGeoResult?.geometry) {
     placesModule.clear();
     return;
   }
 
-  placesModule.show(revGeoResult.features);
+  placesModule.show([revGeoResult]);
 
-  // Fit bounds using SDK utility
-  const bbox = bboxFromGeoJSON(revGeoResult);
-  if (bbox) {
-    map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
-      padding: 50,
-      maxZoom: 15,
-    });
+  // Fly to the single point (fitBounds is not meaningful for one point)
+  const coords = revGeoResult.geometry.coordinates;
+  if (coords) {
+    map.mapLibreMap.flyTo({ center: coords, zoom: 15 });
   }
 }
 

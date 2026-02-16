@@ -110,7 +110,7 @@ export function setupPoiPopups(map: TomTomMap, placesModule: PlacesModule): void
       closeButton: true,
       maxWidth: "380px",
       className: "poi-popup-container",
-      offset: [0, -10],
+      offset: [0, 4],
     })
       .setLngLat(coords)
       .setHTML(html)
