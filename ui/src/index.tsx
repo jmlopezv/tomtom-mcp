@@ -140,6 +140,18 @@ const EXAMPLE_INPUTS: Record<string, Record<string, unknown>> = {
     show_ui: true,
     response_detail: "compact",
   },
+  "tomtom-data-viz": {
+    data_url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson",
+    layers: [
+      {
+        type: "clusters",
+        label_property: "title",
+        popup_fields: ["title", "mag", "place", "type", "time"],
+      },
+    ],
+    title: "USGS Earthquakes — Past 7 Days",
+    show_ui: true,
+  },
 };
 
 function getExampleInput(toolName: string): string {

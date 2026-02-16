@@ -8,10 +8,16 @@ const dotenv = require('dotenv');
 // Load environment variables from .env file
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const APP_CATEGORIES = ['search', 'routing', 'traffic', 'map'];
+const ALL_CATEGORIES = ['search', 'routing', 'traffic', 'map', 'data-viz'];
 const ROOT_DIR = path.join(__dirname, '..');
 const APPS_DIR = path.join(ROOT_DIR, 'src/apps');
 const DIST_DIR = path.join(ROOT_DIR, 'dist/apps');
+
+// Parse --category=<name> flag to build only a specific category
+const categoryArg = process.argv.find(a => a.startsWith('--category='));
+const APP_CATEGORIES = categoryArg
+  ? [categoryArg.split('=')[1]]
+  : ALL_CATEGORIES;
 
 /**
  * Discover all apps and their entry points

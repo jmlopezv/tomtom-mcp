@@ -30,6 +30,7 @@ import { createEVSearchOrbisTools } from "./tools/evSearchOrbisTools";
 import { createEVRoutingOrbisTools } from "./tools/evRoutingOrbisTools";
 import { createSearchAlongRouteOrbisTools } from "./tools/searchAlongRouteOrbisTools";
 import { createAreaSearchOrbisTools } from "./tools/areaSearchOrbisTools";
+import { createDataVizOrbisTools } from "./tools/dataVizOrbisTools";
 import { VERSION } from "./version";
 
 /**
@@ -138,6 +139,7 @@ async function registerTools(server: McpServer, isOrbis: boolean): Promise<void>
     await createEVRoutingOrbisTools(server);
     await createSearchAlongRouteOrbisTools(server);
     await createAreaSearchOrbisTools(server);
+    await createDataVizOrbisTools(server);
   } else {
     logger.info("Registering TomTom Maps tools");
     // Register TomTom Maps (standard TomTom) tools

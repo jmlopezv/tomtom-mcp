@@ -33,6 +33,7 @@ import {
 import { tomtomMapSchema } from "./map/mapSchema";
 import { tomtomDynamicMapSchema } from "./map/dynamicMapSchema";
 import { tomtomTrafficSchema } from "./traffic/trafficOrbisSchema";
+import { tomtomDataVizSchema } from "./dataViz/dataVizSchema";
 
 export const schemas = {
   tomtomFuzzySearchSchema,
@@ -50,4 +51,5 @@ export const schemas = {
   tomtomEvRoutingSchema,
   tomtomSearchAlongRouteSchema,
   tomtomAreaSearchSchema,
+  tomtomDataVizSchema,
 };

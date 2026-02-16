@@ -23,6 +23,7 @@
     "build:apps:routing": "node scripts/build-apps.cjs --category=routing",
     "build:apps:traffic": "node scripts/build-apps.cjs --category=traffic",
     "build:apps:map": "node scripts/build-apps.cjs --category=map",
+    "build:apps:data-viz": "node scripts/build-apps.cjs --category=data-viz",
     "build:mcpb": "node scripts/build-mcpb.cjs",
     "build": "npm run build:ts && npm run build:rollup && npm run build:apps",
     "build:bin": "shx chmod +x bin/tomtom-mcp.js && shx chmod +x bin/tomtom-mcp-http.js",
