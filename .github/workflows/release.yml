@@ -127,7 +127,7 @@ jobs:
         with:
           workflow: build-mcpb.yml
           name: tomtom-mcp-darwin-arm64
-          path: ./claude_desktop_extensions
+          path: ./dist/mcpb
           branch: main
           search_artifacts: true
 
@@ -136,7 +136,7 @@ jobs:
         with:
           workflow: build-mcpb.yml
           name: tomtom-mcp-linux-x64
-          path: ./claude_desktop_extensions
+          path: ./dist/mcpb
           branch: main
           search_artifacts: true
 
@@ -145,21 +145,21 @@ jobs:
         with:
           workflow: build-mcpb.yml
           name: tomtom-mcp-win32-x64
-          path: ./claude_desktop_extensions
+          path: ./dist/mcpb
           branch: main
           search_artifacts: true
 
       - name: List downloaded artifacts
-        run: ls -la ./claude_desktop_extensions/
+        run: ls -la ./dist/mcpb/
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.get-version.outputs.version }}
           files: |
-            ./claude_desktop_extensions/tomtom-mcp-darwin-arm64.mcpb
-            ./claude_desktop_extensions/tomtom-mcp-linux-x64.mcpb
-            ./claude_desktop_extensions/tomtom-mcp-win32-x64.mcpb
+            ./dist/mcpb/tomtom-mcp-darwin-arm64.mcpb
+            ./dist/mcpb/tomtom-mcp-linux-x64.mcpb
+            ./dist/mcpb/tomtom-mcp-win32-x64.mcpb
 
   publish-npm:
     runs-on: ubuntu-22.04

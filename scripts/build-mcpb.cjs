@@ -18,7 +18,7 @@
  * Build MCPB Package Script
  *
  * Creates a self-contained tomtom-mcp-{platform}-{arch}.mcpb in
- * claude_desktop_extensions/ with full dynamic map support. Bundles Node.js 22.x
+ * dist/mcpb/ with full dynamic map support. Bundles Node.js 22.x
  * (ABI 127) so users need zero external dependencies.
  *
  * Usage:
@@ -40,7 +40,7 @@ const DIST_DIR = path.join(PROJECT_ROOT, 'dist');
 const NODE_MODULES = path.join(PROJECT_ROOT, 'node_modules');
 const PLATFORM = process.platform;
 const ARCH = process.arch;
-const OUTPUT_DIR = path.join(PROJECT_ROOT, 'claude_desktop_extensions');
+const OUTPUT_DIR = path.join(PROJECT_ROOT, 'dist', 'mcpb');
 const OUTPUT_MCPB = path.join(OUTPUT_DIR, `tomtom-mcp-${PLATFORM}-${ARCH}.mcpb`);
 
 // Use OS temp directory

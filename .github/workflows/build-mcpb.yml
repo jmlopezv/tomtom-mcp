@@ -71,5 +71,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tomtom-mcp-${{ matrix.platform }}-${{ matrix.arch }}
-          path: claude_desktop_extensions/tomtom-mcp-${{ matrix.platform }}-${{ matrix.arch }}.mcpb
+          path: dist/mcpb/tomtom-mcp-${{ matrix.platform }}-${{ matrix.arch }}.mcpb
           retention-days: 90
