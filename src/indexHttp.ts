@@ -28,12 +28,7 @@ import { registerErrorHandlers } from "./utils/uncaughtErrorHandlers";
 
 registerErrorHandlers();
 
-export type Backend = "orbis" | "genesis";
-
-interface ServerInstance {
-  server: McpServer;
-  transport: StreamableHTTPServerTransport;
-}
+export type Backend = "tomtom-orbis-maps" | "tomtom-maps";
 
 export interface HttpServerOptions {
   port?: number;
@@ -45,7 +40,6 @@ export interface HttpServerOptions {
 export interface HttpServerResult {
   app: Express;
   httpServer: Server;
-  servers: Partial<Record<Backend, ServerInstance>>;
   shutdown: () => Promise<void>;
 }
 
@@ -55,7 +49,7 @@ export interface HttpServerResult {
  */
 export function resolveFixedBackend(mapsEnv: string | undefined): Backend | null {
   const normalized = mapsEnv?.toLowerCase();
-  return (normalized === "orbis" || normalized === "genesis") ? normalized : null;
+  return (normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps") ? normalized : null;
 }
 
 /**
@@ -64,28 +58,26 @@ export function resolveFixedBackend(mapsEnv: string | undefined): Backend | null
 export function resolveBackendFromHeader(
   fixedBackend: Backend | null,
   headerValue: string | undefined,
-  defaultBackend: Backend = "genesis"
+  defaultBackend: Backend = "tomtom-maps"
 ): Backend {
   if (fixedBackend) return fixedBackend;
   const normalized = headerValue?.toLowerCase();
-  return (normalized === "orbis" || normalized === "genesis") ? normalized : defaultBackend;
-}
-
-async function createMcpInstance(backend: Backend): Promise<ServerInstance> {
-  const server = createServer({ mapsBackend: backend });
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  await server.connect(transport);
-  return { server, transport };
+  return (normalized === "tomtom-orbis-maps" || normalized === "tomtom-maps") ? normalized : defaultBackend;
 }
 
 /**
  * Creates and starts the HTTP server. Exported for integration testing.
+ *
+ * Uses per-request transports: McpServer instances are created once at startup
+ * (with tools registered), but a fresh StreamableHTTPServerTransport is created
+ * for each incoming request. This follows the MCP SDK's stateless HTTP pattern
+ * and avoids transport reuse issues across sequential requests.
  */
 export async function createHttpServer(options: HttpServerOptions = {}): Promise<HttpServerResult> {
   const {
     port = 3000,
     fixedBackend = resolveFixedBackend(process.env.MAPS),
-    defaultBackend = "genesis",
+    defaultBackend = "tomtom-maps",
     allowedOrigins = process.env.ALLOWED_ORIGINS,
   } = options;
 
@@ -93,19 +85,23 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
   app.use(express.json());
   app.use(cors({
     origin: allowedOrigins?.split(",") || "*",
-    methods: ["POST", "GET"],
-    allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend"],
+    methods: ["POST", "GET", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "tomtom-api-key", "tomtom-maps-backend", "mcp-protocol-version"],
     maxAge: 86400,
   }));
 
-  const servers: Partial<Record<Backend, ServerInstance>> = {};
+  // Pre-create McpServer instances with tools registered (once at startup)
+  const mcpServers: Partial<Record<Backend, McpServer>> = {};
+  const availableBackends: Backend[] = [];
 
   if (fixedBackend) {
-    servers[fixedBackend] = await createMcpInstance(fixedBackend);
+    mcpServers[fixedBackend] = createServer({ mapsBackend: fixedBackend });
+    availableBackends.push(fixedBackend);
     logger.info({ backend: fixedBackend }, "MCP server initialized (fixed backend mode)");
   } else {
-    servers.orbis = await createMcpInstance("orbis");
-    servers.genesis = await createMcpInstance("genesis");
+    mcpServers["tomtom-orbis-maps"] = createServer({ mapsBackend: "tomtom-orbis-maps" });
+    mcpServers["tomtom-maps"] = createServer({ mapsBackend: "tomtom-maps" });
+    availableBackends.push("tomtom-orbis-maps", "tomtom-maps");
     logger.info({ default: defaultBackend }, "MCP servers initialized (dual backend mode)");
   }
 
@@ -128,8 +124,8 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       }
 
       const backend = getBackend(req);
-      const instance = servers[backend];
-      if (!instance) {
+      const server = mcpServers[backend];
+      if (!server) {
         res.status(400).json({
           jsonrpc: "2.0",
           error: { code: -32002, message: `Backend '${backend}' not available` },
@@ -140,8 +136,19 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
 
       logger.debug({ requestId, backend }, "Processing MCP request");
 
+      // Create a fresh transport per request (stateless mode pattern from MCP SDK)
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+
+      res.on("close", () => {
+        transport.close();
+      });
+
+      await server.connect(transport);
+
       await runWithSessionContext(apiKey, backend, async () => {
-        await instance.transport.handleRequest(req, res, req.body);
+        await transport.handleRequest(req, res, req.body);
       });
     } catch (error) {
       logger.error({ requestId, error: error instanceof Error ? error.message : error }, "Request failed");
@@ -164,7 +171,7 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       status: "ok",
       version: readVersion(),
       mode: fixedBackend ? "fixed" : "dual",
-      backends: Object.keys(servers),
+      backends: availableBackends,
       ...(!fixedBackend && { default: defaultBackend }),
     });
   });
@@ -173,7 +180,7 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     logger.info({
       port,
       mode: fixedBackend ? "fixed" : "dual",
-      backends: Object.keys(servers),
+      backends: availableBackends,
       ...(!fixedBackend && { default: defaultBackend }),
     }, "TomTom MCP HTTP Server started");
   });
@@ -182,13 +189,13 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     logger.info("Shutting down...");
     return new Promise((resolve) => {
       httpServer.close(async () => {
-        await Promise.all(Object.values(servers).map(s => s.server.close()));
+        await Promise.all(Object.values(mcpServers).map(s => s.close()));
         resolve();
       });
     });
   };
 
-  return { app, httpServer, servers, shutdown };
+  return { app, httpServer, shutdown };
 }
 
 async function main(): Promise<void> {
