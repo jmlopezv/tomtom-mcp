@@ -62,10 +62,10 @@ let currentMapState: CachedMapState | null = null;
 
 // ─── Map Pin Marker Image ────────────────────────────────────────────────────
 
-// Map pin SVG path (56x70 viewBox) — classic teardrop pin from search-poi-default-big.svg
-const MAP_PIN_PATH = "M28 0.5C43.464 0.5 56 13.036 56 28.5C56 36.4307 52.7025 43.5902 47.4039 48.6839C41.1919 54.6556 33.4888 59.4953 29.1221 66.9238C28.6435 67.7378 27.3565 67.7378 26.8779 66.9238C22.5105 59.4953 14.807 54.6555 8.59503 48.6831C3.29706 43.5894 0 36.4302 0 28.5C0 13.036 12.536 0.5 28 0.5Z";
-const MAP_PIN_SVG_WIDTH = 56;
-const MAP_PIN_SVG_HEIGHT = 70;
+// Map pin SVG path (24x29 viewBox) — compact teardrop pin from search-poi-default-big.svg
+const MAP_PIN_PATH = "M12 0.299805C18.6274 0.299805 24 5.67239 24 12.2998C24 16.3318 22.011 19.8976 18.9609 22.0724C16.6127 23.7469 14.1021 25.4307 12.79 27.999C12.4489 28.6666 11.5511 28.6666 11.21 27.999C9.89722 25.4306 7.38622 23.7468 5.03788 22.0718C1.98845 19.8968 0 16.3313 0 12.2998C0 5.67239 5.37258 0.299805 12 0.299805Z";
+const MAP_PIN_SVG_WIDTH = 24;
+const MAP_PIN_SVG_HEIGHT = 29;
 
 /**
  * Generate map pin image for MapLibre.
@@ -73,7 +73,7 @@ const MAP_PIN_SVG_HEIGHT = 70;
  */
 function generatePinImage(): ImageData {
   const w = 48;
-  const h = 60;
+  const h = 58;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -93,7 +93,7 @@ function generatePinImage(): ImageData {
 
   // Dark border for depth
   ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1;
   ctx.stroke(path);
   ctx.restore();
 
