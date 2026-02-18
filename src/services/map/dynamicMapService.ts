@@ -46,8 +46,11 @@ async function ensureSkiaLoaded(): Promise<boolean> {
     skiaLoadImage = skia.loadImage;
     skiaAvailable = true;
     logger.info("✅ skia-canvas loaded successfully");
-  } catch {
-    logger.warn("⚠️ skia-canvas not available: alt dynamic maps will not function");
+  } catch (error: any) {
+    logger.warn(
+      { error: error.message, code: error.code, nodeVersion: process.version, abi: process.versions.modules },
+      "⚠️ skia-canvas not available: dynamic maps will not function"
+    );
   }
   return skiaAvailable;
 }
@@ -1061,7 +1064,7 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
   await ensureSkiaLoaded();
   if (!skiaAvailable) {
     throw new Error(
-      "Dynamic map dependencies not available. Install skia-canvas to enable this feature."
+      `Dynamic map dependencies not available. Install skia-canvas to enable this feature. [node=${process.version}, abi=${process.versions.modules}, arch=${process.arch}, platform=${process.platform}]`
     );
   }
 
