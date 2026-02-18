@@ -92,7 +92,7 @@ function showPopupForFeature(feature: any, lngLat: [number, number]): void {
     closeButton: true,
     maxWidth: "360px",
     className: "poi-popup-container incident-popup-container",
-    offset: [0, -10],
+    offset: [0, -12],
   })
     .setLngLat(lngLat)
     .setHTML(html)

@@ -10,11 +10,29 @@ let activePopup: Popup | null = null;
 let hidePaintApplied = false;
 
 const POI_POPUP_STYLES = `
+  .poi-popup-container {
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.13)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+  }
   .poi-popup-container .maplibregl-popup-content {
     padding: 0;
     border-radius: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+    box-shadow: none;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .poi-popup-container .maplibregl-popup-tip {
+    z-index: 1;
+  }
+  .poi-popup-container.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+    margin-top: -1px;
+  }
+  .poi-popup-container.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+    margin-bottom: -1px;
+  }
+  .poi-popup-container.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+    margin-right: -1px;
+  }
+  .poi-popup-container.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+    margin-left: -1px;
   }
   .poi-popup-container .maplibregl-popup-close-button {
     position: absolute;
@@ -110,7 +128,7 @@ export function setupPoiPopups(map: TomTomMap, placesModule: PlacesModule): void
       closeButton: true,
       maxWidth: "380px",
       className: "poi-popup-container",
-      offset: [0, 4],
+      offset: [0, 2],
     })
       .setLngLat(coords)
       .setHTML(html)
