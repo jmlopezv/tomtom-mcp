@@ -100,17 +100,16 @@ const layerConfigSchema = z.object({
     .optional()
     .describe("Heatmap intensity multiplier. Default: 1. Increase for sparser data."),
 
-  line_width: z
-    .number()
-    .optional()
-    .describe("Line width in pixels for 'line' type. Default: 2."),
+  line_width: z.number().optional().describe("Line width in pixels for 'line' type. Default: 2."),
 
   fill_opacity: z
     .number()
     .min(0)
     .max(1)
     .optional()
-    .describe("Fill opacity for 'fill' and 'choropleth' types. 0 = transparent, 1 = opaque. Default: 0.7."),
+    .describe(
+      "Fill opacity for 'fill' and 'choropleth' types. 0 = transparent, 1 = opaque. Default: 0.7."
+    ),
 
   filter_property: z
     .string()

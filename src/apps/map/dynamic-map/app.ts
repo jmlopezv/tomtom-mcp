@@ -99,7 +99,8 @@ function generateShapeImage(shapeName: string): ImageData {
         const rad = i % 2 === 0 ? outerR : innerR;
         const px = cx + Math.cos(angle) * rad;
         const py = cy + Math.sin(angle) * rad;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
       }
       ctx.closePath();
       break;
@@ -351,7 +352,9 @@ function buildRoutePopupHtml(props: Record<string, unknown>): string {
   if (props.distance) stats.push(`Distance: ${escapeHtml(String(props.distance))}`);
   if (props.travelTime) stats.push(`Time: ${escapeHtml(String(props.travelTime))}`);
   if (props.trafficDelayInSeconds && Number(props.trafficDelayInSeconds) > 0) {
-    stats.push(`<span class="dm-traffic-delay">+${escapeHtml(String(props.trafficDelay))} delay</span>`);
+    stats.push(
+      `<span class="dm-traffic-delay">+${escapeHtml(String(props.trafficDelay))} delay</span>`
+    );
   }
 
   if (stats.length > 0) {

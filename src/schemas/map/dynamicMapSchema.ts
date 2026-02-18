@@ -190,7 +190,7 @@ const markerSchema = z.object({
     .optional()
     .describe(
       "Optional icon for the marker. Predefined shapes: 'pin', 'star', 'square', 'diamond', 'triangle', 'cross', 'heart'. " +
-      "Also supports emoji strings like '🏠', '🛒', '🚌'. If omitted, the default circle marker is used. EXAMPLE: 'star' or '🏠'."
+        "Also supports emoji strings like '🏠', '🛒', '🚌'. If omitted, the default circle marker is used. EXAMPLE: 'star' or '🏠'."
     ),
 });
 

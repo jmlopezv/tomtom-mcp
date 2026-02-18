@@ -16,6 +16,7 @@ import { App } from "@modelcontextprotocol/ext-apps";
 import { TomTomMap } from "@tomtom-org/maps-sdk/map";
 import { reverseGeocode } from "@tomtom-org/maps-sdk/services";
 import { Popup } from "maplibre-gl";
+import type { FeatureCollection } from "geojson";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { createMapControls } from "../../shared/map-controls";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
@@ -45,7 +46,7 @@ interface LayerConfig {
 }
 
 interface VizData {
-  geojson: GeoJSON.FeatureCollection;
+  geojson: FeatureCollection;
   layers: LayerConfig[];
   title?: string;
   bbox?: [number, number, number, number] | null;
@@ -82,10 +83,7 @@ function coordKey(lng: number, lat: number): string {
   return `${lng.toFixed(5)},${lat.toFixed(5)}`;
 }
 
-async function enrichPopupWithAddress(
-  lngLat: [number, number],
-  popup: Popup
-): Promise<void> {
+async function enrichPopupWithAddress(lngLat: [number, number], popup: Popup): Promise<void> {
   const key = coordKey(lngLat[0], lngLat[1]);
 
   // Already cached
@@ -202,10 +200,7 @@ function clearLayers(): void {
 // Feature filtering
 // ---------------------------------------------------------------------------
 
-function filterFeatures(
-  fc: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): GeoJSON.FeatureCollection {
+function filterFeatures(fc: FeatureCollection, config: LayerConfig): FeatureCollection {
   if (!config.filter_property || !config.filter_values?.length) return fc;
 
   const prop = config.filter_property;
@@ -225,7 +220,7 @@ function filterFeatures(
 // ---------------------------------------------------------------------------
 
 function computePropertyRange(
-  fc: GeoJSON.FeatureCollection,
+  fc: FeatureCollection,
   prop: string
 ): { min: number; max: number } | null {
   let min = Infinity;
@@ -253,9 +248,7 @@ function buildPopupHtml(
   popupFields?: string[],
   labelProperty?: string
 ): string {
-  const title = labelProperty && props[labelProperty]
-    ? String(props[labelProperty])
-    : null;
+  const title = labelProperty && props[labelProperty] ? String(props[labelProperty]) : null;
 
   const fields = popupFields || Object.keys(props);
 
@@ -294,12 +287,16 @@ function showPopup(
   }
 
   // Check if feature already has address-like properties
-  const hasAddress = props.address || props.freeformAddress || props.street ||
-    props.streetAddress || props.full_address;
+  const hasAddress =
+    props.address ||
+    props.freeformAddress ||
+    props.street ||
+    props.streetAddress ||
+    props.full_address;
 
   // Add placeholder for reverse geocode enrichment on Point features
-  const needsEnrichment = !hasAddress &&
-    (geometryType === "Point" || geometryType === "MultiPoint");
+  const needsEnrichment =
+    !hasAddress && (geometryType === "Point" || geometryType === "MultiPoint");
 
   let html = buildPopupHtml(props, config.popup_fields, config.label_property);
 
@@ -311,18 +308,18 @@ function showPopup(
       html = html.replace(
         /<\/div>$/,
         `<div class="viz-popup-row viz-address-row">` +
-        `<span class="viz-popup-key">address</span>` +
-        `<span class="viz-popup-value">${escapeHtml(cached)}</span>` +
-        `</div></div>`
+          `<span class="viz-popup-key">address</span>` +
+          `<span class="viz-popup-value">${escapeHtml(cached)}</span>` +
+          `</div></div>`
       );
     } else {
       html = html.replace(
         /<\/div>$/,
         `<div class="viz-address-placeholder">` +
-        `<div class="viz-popup-row viz-address-loading">` +
-        `<span class="viz-popup-key">address</span>` +
-        `<span class="viz-popup-value">loading...</span>` +
-        `</div></div></div>`
+          `<div class="viz-popup-row viz-address-loading">` +
+          `<span class="viz-popup-key">address</span>` +
+          `<span class="viz-popup-value">loading...</span>` +
+          `</div></div></div>`
       );
     }
   }
@@ -351,11 +348,7 @@ function showPopup(
 // Click handler setup
 // ---------------------------------------------------------------------------
 
-function setupClickHandler(
-  ml: MapLibreMap,
-  layerId: string,
-  config: LayerConfig
-): void {
+function setupClickHandler(ml: MapLibreMap, layerId: string, config: LayerConfig): void {
   ml.on("click", layerId, (e) => {
     if (!e.features?.length) return;
     const feature = e.features[0];
@@ -387,11 +380,7 @@ function nextId(prefix: string): string {
 /**
  * Markers — circle layer with optional data-driven color and size
  */
-function addMarkersLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addMarkersLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-markers-src");
   const layerId = nextId("viz-markers");
 
@@ -412,10 +401,13 @@ function addMarkersLayer(
     const [minColor, maxColor] = config.color_scale || ["#2196F3", "#F44336"];
     if (range && range.min !== range.max) {
       paint["circle-color"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.color_property],
-        range.min, minColor,
-        range.max, maxColor,
+        range.min,
+        minColor,
+        range.max,
+        maxColor,
       ];
     }
   }
@@ -424,10 +416,13 @@ function addMarkersLayer(
     const range = computePropertyRange(data, config.size_property);
     if (range && range.min !== range.max) {
       paint["circle-radius"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.size_property],
-        range.min, 4,
-        range.max, 20,
+        range.min,
+        4,
+        range.max,
+        20,
       ];
     }
   }
@@ -436,10 +431,7 @@ function addMarkersLayer(
     id: layerId,
     type: "circle",
     source: sourceId,
-    filter: ["any",
-      ["==", ["geometry-type"], "Point"],
-      ["==", ["geometry-type"], "MultiPoint"],
-    ],
+    filter: ["any", ["==", ["geometry-type"], "Point"], ["==", ["geometry-type"], "MultiPoint"]],
     paint,
   });
   addedLayers.push(layerId);
@@ -450,11 +442,7 @@ function addMarkersLayer(
 /**
  * Heatmap — density visualization for point data
  */
-function addHeatmapLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addHeatmapLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-heat-src");
   const layerId = nextId("viz-heat");
 
@@ -468,13 +456,21 @@ function addHeatmapLayer(
     "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 15, 5, 20, 15, 30],
     "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 9, 0.6, 15, 0.3],
     "heatmap-color": [
-      "interpolate", ["linear"], ["heatmap-density"],
-      0, "rgba(0,0,255,0)",
-      0.1, "royalblue",
-      0.3, "cyan",
-      0.5, "lime",
-      0.7, "yellow",
-      1, "red",
+      "interpolate",
+      ["linear"],
+      ["heatmap-density"],
+      0,
+      "rgba(0,0,255,0)",
+      0.1,
+      "royalblue",
+      0.3,
+      "cyan",
+      0.5,
+      "lime",
+      0.7,
+      "yellow",
+      1,
+      "red",
     ],
   };
 
@@ -482,10 +478,13 @@ function addHeatmapLayer(
     const range = computePropertyRange(data, config.heatmap_weight);
     if (range && range.min !== range.max) {
       paint["heatmap-weight"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.heatmap_weight],
-        range.min, 0,
-        range.max, 1,
+        range.min,
+        0,
+        range.max,
+        1,
       ];
     }
   }
@@ -502,11 +501,7 @@ function addHeatmapLayer(
 /**
  * Clusters — aggregated point markers with click-to-zoom
  */
-function addClustersLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addClustersLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-cluster-src");
   const clusterId = nextId("viz-cluster-circles");
   const countId = nextId("viz-cluster-count");
@@ -529,19 +524,17 @@ function addClustersLayer(
     filter: ["has", "point_count"],
     paint: {
       "circle-color": [
-        "step", ["get", "point_count"],
-        "#51bbd6", 10,
-        "#f1f075", 50,
-        "#f28cb1", 100,
+        "step",
+        ["get", "point_count"],
+        "#51bbd6",
+        10,
+        "#f1f075",
+        50,
+        "#f28cb1",
+        100,
         "#e55e5e",
       ],
-      "circle-radius": [
-        "step", ["get", "point_count"],
-        15, 10,
-        20, 50,
-        25, 100,
-        30,
-      ],
+      "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 50, 25, 100, 30],
       "circle-stroke-width": 2,
       "circle-stroke-color": "#ffffff",
     },
@@ -596,18 +589,18 @@ function addClustersLayer(
   setupClickHandler(ml, unclusteredId, config);
 
   // Cursors
-  ml.on("mouseenter", clusterId, () => { ml.getCanvas().style.cursor = "pointer"; });
-  ml.on("mouseleave", clusterId, () => { ml.getCanvas().style.cursor = ""; });
+  ml.on("mouseenter", clusterId, () => {
+    ml.getCanvas().style.cursor = "pointer";
+  });
+  ml.on("mouseleave", clusterId, () => {
+    ml.getCanvas().style.cursor = "";
+  });
 }
 
 /**
  * Line — for LineString/MultiLineString geometries
  */
-function addLineLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addLineLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-line-src");
   const layerId = nextId("viz-line");
 
@@ -625,10 +618,13 @@ function addLineLayer(
     const [minColor, maxColor] = config.color_scale || ["#2196F3", "#F44336"];
     if (range && range.min !== range.max) {
       paint["line-color"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.color_property],
-        range.min, minColor,
-        range.max, maxColor,
+        range.min,
+        minColor,
+        range.max,
+        maxColor,
       ];
     }
   }
@@ -637,10 +633,13 @@ function addLineLayer(
     const range = computePropertyRange(data, config.size_property);
     if (range && range.min !== range.max) {
       paint["line-width"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.size_property],
-        range.min, 1,
-        range.max, 8,
+        range.min,
+        1,
+        range.max,
+        8,
       ];
     }
   }
@@ -649,7 +648,8 @@ function addLineLayer(
     id: layerId,
     type: "line",
     source: sourceId,
-    filter: ["any",
+    filter: [
+      "any",
       ["==", ["geometry-type"], "LineString"],
       ["==", ["geometry-type"], "MultiLineString"],
     ],
@@ -664,11 +664,7 @@ function addLineLayer(
 /**
  * Fill — solid polygon fills
  */
-function addFillLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addFillLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-fill-src");
   const fillId = nextId("viz-fill");
   const outlineId = nextId("viz-fill-outline");
@@ -688,15 +684,19 @@ function addFillLayer(
     const [minColor, maxColor] = config.color_scale || ["#2196F3", "#F44336"];
     if (range && range.min !== range.max) {
       paint["fill-color"] = [
-        "interpolate", ["linear"],
+        "interpolate",
+        ["linear"],
         ["get", config.color_property],
-        range.min, minColor,
-        range.max, maxColor,
+        range.min,
+        minColor,
+        range.max,
+        maxColor,
       ];
     }
   }
 
-  const polygonFilter: any = ["any",
+  const polygonFilter: any = [
+    "any",
     ["==", ["geometry-type"], "Polygon"],
     ["==", ["geometry-type"], "MultiPolygon"],
   ];
@@ -730,11 +730,7 @@ function addFillLayer(
 /**
  * Choropleth — data-driven polygon coloring with legend
  */
-function addChoroplethLayer(
-  ml: MapLibreMap,
-  data: GeoJSON.FeatureCollection,
-  config: LayerConfig
-): void {
+function addChoroplethLayer(ml: MapLibreMap, data: FeatureCollection, config: LayerConfig): void {
   const sourceId = nextId("viz-choro-src");
   const fillId = nextId("viz-choro-fill");
   const outlineId = nextId("viz-choro-outline");
@@ -753,16 +749,20 @@ function addChoroplethLayer(
 
   if (range && range.min !== range.max) {
     paint["fill-color"] = [
-      "interpolate", ["linear"],
+      "interpolate",
+      ["linear"],
       ["get", colorProp],
-      range.min, minColor,
-      range.max, maxColor,
+      range.min,
+      minColor,
+      range.max,
+      maxColor,
     ];
   } else {
     paint["fill-color"] = minColor;
   }
 
-  const polygonFilter: any = ["any",
+  const polygonFilter: any = [
+    "any",
     ["==", ["geometry-type"], "Polygon"],
     ["==", ["geometry-type"], "MultiPolygon"],
   ];
@@ -901,7 +901,10 @@ function renderVisualization(vizData: VizData): void {
   // Fit to data bounds
   if (bbox) {
     ml.fitBounds(
-      [[bbox[0], bbox[1]], [bbox[2], bbox[3]]],
+      [
+        [bbox[0], bbox[1]],
+        [bbox[2], bbox[3]],
+      ],
       { padding: 50, maxZoom: 15, duration: 1500 }
     );
   }

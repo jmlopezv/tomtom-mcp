@@ -129,8 +129,9 @@ function autoOpenFirstIncident(): void {
     if (autoPopupShown) return;
 
     // Find incident layers by source name (SDK uses "vectorTilesIncidents")
-    const incidentLayers = gl.getStyle().layers
-      .filter((l: any) => l.source === "vectorTilesIncidents")
+    const incidentLayers = gl
+      .getStyle()
+      .layers.filter((l: any) => l.source === "vectorTilesIncidents")
       .map((l: any) => l.id);
 
     if (incidentLayers.length === 0) {
@@ -143,7 +144,8 @@ function autoOpenFirstIncident(): void {
 
     // Pick a random incident that has a description
     const withDesc = features.filter((f: any) => f.properties?.description_0);
-    const feat = withDesc.length > 0 ? withDesc[Math.floor(Math.random() * withDesc.length)] : undefined;
+    const feat =
+      withDesc.length > 0 ? withDesc[Math.floor(Math.random() * withDesc.length)] : undefined;
     if (!feat) {
       if (retries++ < 5) gl.once("idle", tryOpen);
       return;

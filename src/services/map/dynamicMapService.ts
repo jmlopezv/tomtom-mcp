@@ -48,7 +48,12 @@ async function ensureSkiaLoaded(): Promise<boolean> {
     logger.info("✅ skia-canvas loaded successfully");
   } catch (error: any) {
     logger.warn(
-      { error: error.message, code: error.code, nodeVersion: process.version, abi: process.versions.modules },
+      {
+        error: error.message,
+        code: error.code,
+        nodeVersion: process.version,
+        abi: process.versions.modules,
+      },
       "⚠️ skia-canvas not available: dynamic maps will not function"
     );
   }
@@ -69,7 +74,13 @@ const DEFAULT_OPTIONS = {
 // ─── Icon Classification ─────────────────────────────────────────────────────
 
 const PREDEFINED_SHAPES = new Set([
-  "pin", "star", "square", "diamond", "triangle", "cross", "heart",
+  "pin",
+  "star",
+  "square",
+  "diamond",
+  "triangle",
+  "cross",
+  "heart",
 ]);
 
 function classifyIcon(icon?: string): "shape" | "emoji" | "none" {
@@ -116,7 +127,14 @@ function getVisibleBounds(
   zoom: number,
   width: number,
   height: number
-): { north: number; south: number; east: number; west: number; topLeftGlobalX: number; topLeftGlobalY: number } {
+): {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+  topLeftGlobalX: number;
+  topLeftGlobalY: number;
+} {
   const centerGlobalX = lonToGlobalPixelX(centerLon, zoom);
   const centerGlobalY = latToGlobalPixelY(centerLat, zoom);
 
@@ -182,7 +200,13 @@ function calculateRequiredTiles(
  * Fetch a single raster tile from TomTom Maps.
  * Supports both Genesis and Orbis tile APIs.
  */
-async function fetchTile(z: number, x: number, y: number, useOrbis: boolean, style?: string): Promise<Buffer | null> {
+async function fetchTile(
+  z: number,
+  x: number,
+  y: number,
+  useOrbis: boolean,
+  style?: string
+): Promise<Buffer | null> {
   try {
     let url: string;
     let params: Record<string, any>;
@@ -361,7 +385,8 @@ function drawShapeMarker(ctx: any, x: number, y: number, shapeName: string, colo
         const rad = i % 2 === 0 ? outerR : innerR;
         const px = x + Math.cos(angle) * rad;
         const py = y + Math.sin(angle) * rad;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
       }
       ctx.closePath();
       break;
@@ -524,9 +549,11 @@ function drawMarkerLabels(
 
     if (!label) continue;
 
-    const fontSize = priority === "critical" ? 15 : priority === "high" ? 14 : priority === "low" ? 12 : 13;
+    const fontSize =
+      priority === "critical" ? 15 : priority === "high" ? 14 : priority === "low" ? 12 : 13;
     const haloWidth = priority === "critical" ? 5 : priority === "high" ? 4.5 : 4;
-    const textColor = priority === "critical" ? "#000000" : priority === "high" ? "#1a202c" : "#1a365d";
+    const textColor =
+      priority === "critical" ? "#000000" : priority === "high" ? "#1a202c" : "#1a365d";
 
     ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = "center";
@@ -614,7 +641,11 @@ function buildPolygonFeatures(polygons: any[]): any[] {
     .map((polygon: any, index: number) => {
       // Handle circle geometry
       if (polygon.type === "circle" || (polygon.center && polygon.radius)) {
-        if (!polygon.center || typeof polygon.center.lat !== "number" || typeof polygon.center.lon !== "number") {
+        if (
+          !polygon.center ||
+          typeof polygon.center.lat !== "number" ||
+          typeof polygon.center.lon !== "number"
+        ) {
           logger.warn({ index }, "⚠️ Circle has invalid center coordinates");
           return null;
         }
@@ -623,7 +654,12 @@ function buildPolygonFeatures(polygons: any[]): any[] {
           return null;
         }
 
-        const circlePoints = generateCirclePoints(polygon.center.lat, polygon.center.lon, polygon.radius, 64);
+        const circlePoints = generateCirclePoints(
+          polygon.center.lat,
+          polygon.center.lon,
+          polygon.radius,
+          64
+        );
         const polygonCoordinates = circlePoints.map((point) => [point.lon, point.lat]);
         polygonCoordinates.push(polygonCoordinates[0]);
 
@@ -713,7 +749,9 @@ function buildRouteFeatures(
   return routes
     .map((route, routeIndex) => {
       const validCoords = route
-        .map((point, pointIndex) => extractCoordinates(point, `${routeIndex}-${pointIndex}`, "route point"))
+        .map((point, pointIndex) =>
+          extractCoordinates(point, `${routeIndex}-${pointIndex}`, "route point")
+        )
         .filter((coord) => coord !== null)
         .map((coord) => [coord!.lon, coord!.lat]);
 
@@ -819,7 +857,11 @@ function buildMapStateLayers(
       type: "line",
       source: "polygons",
       layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": ["get", "strokeColor"], "line-width": ["get", "strokeWidth"], "line-opacity": 0.8 },
+      paint: {
+        "line-color": ["get", "strokeColor"],
+        "line-width": ["get", "strokeWidth"],
+        "line-opacity": 0.8,
+      },
     });
     if (showLabels) {
       layers.push({
@@ -834,7 +876,12 @@ function buildMapStateLayers(
           "text-allow-overlap": false,
           "text-padding": 10,
         },
-        paint: { "text-color": "#333333", "text-halo-color": "#ffffff", "text-halo-width": 2, "text-halo-blur": 1 },
+        paint: {
+          "text-color": "#333333",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 2,
+          "text-halo-blur": 1,
+        },
       });
     }
   }
@@ -870,7 +917,12 @@ function buildMapStateLayers(
           "text-line-height": 1.0,
           "text-justify": "center",
         },
-        paint: { "text-color": "#1976d2", "text-halo-color": "#ffffff", "text-halo-width": 3, "text-halo-blur": 1 },
+        paint: {
+          "text-color": "#1976d2",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 3,
+          "text-halo-blur": 1,
+        },
       });
     }
   }
@@ -885,7 +937,12 @@ function buildMapStateLayers(
       type: "circle",
       source: "markers",
       filter: noIconFilter,
-      paint: { "circle-radius": 20, "circle-color": "rgba(0, 0, 0, 0.25)", "circle-blur": 1, "circle-translate": [3, 3] },
+      paint: {
+        "circle-radius": 20,
+        "circle-color": "rgba(0, 0, 0, 0.25)",
+        "circle-blur": 1,
+        "circle-translate": [3, 3],
+      },
     });
     layers.push({
       id: "marker-outer",
@@ -904,7 +961,13 @@ function buildMapStateLayers(
       type: "circle",
       source: "markers",
       filter: noIconFilter,
-      paint: { "circle-radius": 14, "circle-color": ["get", "color"], "circle-stroke-width": 3, "circle-stroke-color": "#ffffff", "circle-opacity": 1 },
+      paint: {
+        "circle-radius": 14,
+        "circle-color": ["get", "color"],
+        "circle-stroke-width": 3,
+        "circle-stroke-color": "#ffffff",
+        "circle-opacity": 1,
+      },
     });
     layers.push({
       id: "marker-inner",
@@ -960,14 +1023,22 @@ function buildMapStateLayers(
             "text-font": ["Noto-Bold"],
             "text-offset": [0, 3.0],
             "text-anchor": "top",
-            "text-size": priority === "critical" ? 15 : priority === "high" ? 14 : priority === "low" ? 12 : 13,
+            "text-size":
+              priority === "critical"
+                ? 15
+                : priority === "high"
+                  ? 14
+                  : priority === "low"
+                    ? 12
+                    : 13,
             "text-max-width": 12,
             "text-allow-overlap": priority === "critical",
             "text-padding": priority === "critical" ? 2 : priority === "high" ? 3 : 5,
             "text-line-height": 1.1,
           },
           paint: {
-            "text-color": priority === "critical" ? "#000000" : priority === "high" ? "#1a202c" : "#1a365d",
+            "text-color":
+              priority === "critical" ? "#000000" : priority === "high" ? "#1a202c" : "#1a365d",
             "text-halo-color": "#ffffff",
             "text-halo-width": priority === "critical" ? 5 : priority === "high" ? 4.5 : 4,
             "text-halo-blur": 1,
@@ -1000,7 +1071,10 @@ export async function compressMapImage(
   }
 
   logger.info(
-    { original_kb: (originalBuffer.length / 1024).toFixed(2), target_kb: (targetBytes / 1024).toFixed(2) },
+    {
+      original_kb: (originalBuffer.length / 1024).toFixed(2),
+      target_kb: (targetBytes / 1024).toFixed(2),
+    },
     "🗜️ Compressing map image"
   );
 
@@ -1017,7 +1091,10 @@ export async function compressMapImage(
     const jpegBuffer = await canvas.toBuffer("jpg", { quality });
 
     if (jpegBuffer.length <= targetBytes) {
-      logger.info({ compressed_kb: (jpegBuffer.length / 1024).toFixed(2), quality }, "✅ Compressed with JPEG");
+      logger.info(
+        { compressed_kb: (jpegBuffer.length / 1024).toFixed(2), quality },
+        "✅ Compressed with JPEG"
+      );
       return { base64: jpegBuffer.toString("base64"), contentType: "image/jpeg" };
     }
   }
@@ -1033,7 +1110,10 @@ export async function compressMapImage(
     const jpegBuffer = await canvas.toBuffer("jpg", { quality: 0.6 });
 
     if (jpegBuffer.length <= targetBytes) {
-      logger.info({ compressed_kb: (jpegBuffer.length / 1024).toFixed(2), scale, width: sw, height: sh }, "✅ Compressed with scaling");
+      logger.info(
+        { compressed_kb: (jpegBuffer.length / 1024).toFixed(2), scale, width: sw, height: sh },
+        "✅ Compressed with scaling"
+      );
       return { base64: jpegBuffer.toString("base64"), contentType: "image/jpeg" };
     }
     scale -= 0.15;
@@ -1047,7 +1127,10 @@ export async function compressMapImage(
   ctx.drawImage(img, 0, 0, minW, minH);
   const jpegBuffer = await canvas.toBuffer("jpg", { quality: 0.3 });
 
-  logger.warn({ compressed_kb: (jpegBuffer.length / 1024).toFixed(2) }, "⚠️ Compressed to minimum size");
+  logger.warn(
+    { compressed_kb: (jpegBuffer.length / 1024).toFixed(2) },
+    "⚠️ Compressed to minimum size"
+  );
   return { base64: jpegBuffer.toString("base64"), contentType: "image/jpeg" };
 }
 
@@ -1100,7 +1183,8 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     const hasMarkers = markers.length > 0;
     const hasPolygons = polygons.length > 0;
     const hasDirectRoutes = (finalOptions as any).routes && (finalOptions as any).routes.length > 0;
-    const hasBbox = finalOptions.bbox && Array.isArray(finalOptions.bbox) && finalOptions.bbox.length === 4;
+    const hasBbox =
+      finalOptions.bbox && Array.isArray(finalOptions.bbox) && finalOptions.bbox.length === 4;
 
     if (!isRoutePlanningMode && !hasMarkers && !hasPolygons && !hasDirectRoutes && !hasBbox) {
       throw new IncorrectError("Map requires content to display", {});
@@ -1111,7 +1195,8 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
       const originCoords = extractCoordinates(finalOptions.origin, 0, "origin");
       const destCoords = extractCoordinates(finalOptions.destination, 0, "destination");
 
-      if (!originCoords || !destCoords) throw new Error("Invalid origin or destination coordinates");
+      if (!originCoords || !destCoords)
+        throw new Error("Invalid origin or destination coordinates");
 
       markers.push({
         lat: originCoords.lat,
@@ -1175,7 +1260,11 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
             const start = validCoords[0];
             const end = validCoords[validCoords.length - 1];
 
-            if (!markers.some((m) => Math.abs(m.lat - start[0]) < 0.001 && Math.abs(m.lon - start[1]) < 0.001)) {
+            if (
+              !markers.some(
+                (m) => Math.abs(m.lat - start[0]) < 0.001 && Math.abs(m.lon - start[1]) < 0.001
+              )
+            ) {
               markers.push({
                 lat: start[0],
                 lon: start[1],
@@ -1183,7 +1272,11 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
                 color: "#22c55e",
               });
             }
-            if (!markers.some((m) => Math.abs(m.lat - end[0]) < 0.001 && Math.abs(m.lon - end[1]) < 0.001)) {
+            if (
+              !markers.some(
+                (m) => Math.abs(m.lat - end[0]) < 0.001 && Math.abs(m.lon - end[1]) < 0.001
+              )
+            ) {
               markers.push({
                 lat: end[0],
                 lon: end[1],
@@ -1218,7 +1311,11 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
             routeOptions
           );
         } else {
-          routeResult = await getRoute(finalOptions.origin!, finalOptions.destination!, routeOptions);
+          routeResult = await getRoute(
+            finalOptions.origin!,
+            finalOptions.destination!,
+            routeOptions
+          );
         }
 
         if (routeResult?.routes?.length) {
@@ -1269,7 +1366,13 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     } else if (finalOptions.center && finalOptions.zoom) {
       center = [finalOptions.center.lon, finalOptions.center.lat];
       zoom = finalOptions.zoom;
-      const vb = getVisibleBounds(finalOptions.center.lat, finalOptions.center.lon, zoom, width, height);
+      const vb = getVisibleBounds(
+        finalOptions.center.lat,
+        finalOptions.center.lon,
+        zoom,
+        width,
+        height
+      );
       calculatedBounds = { north: vb.north, south: vb.south, east: vb.east, west: vb.west };
     } else {
       const result = calculateEnhancedBounds(markers, routes, width, height, polygons);
@@ -1313,8 +1416,10 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
 
     // ── Build GeoJSON features ───────────────────────────────────────────
     const polygonFeatures = polygons.length > 0 ? buildPolygonFeatures(polygons) : [];
-    const routeFeatures = routes.length > 0 ? buildRouteFeatures(routes, routeData, finalOptions.routeLabel) : [];
-    const routeLabelFeatures = routeFeatures.length > 0 ? buildRouteLabelFeatures(routeFeatures) : [];
+    const routeFeatures =
+      routes.length > 0 ? buildRouteFeatures(routes, routeData, finalOptions.routeLabel) : [];
+    const routeLabelFeatures =
+      routeFeatures.length > 0 ? buildRouteLabelFeatures(routeFeatures) : [];
     const markerFeatures = markers.length > 0 ? buildMarkerFeatures(markers) : [];
 
     // ── Draw overlays (order: polygons → routes → markers → labels) ─────
@@ -1356,7 +1461,10 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     if (routeLabelFeatures.length > 0) {
       mapStateSources.routeLabels = {
         type: "geojson",
-        data: { type: "FeatureCollection", features: routeLabelFeatures } as GeoJSONFeatureCollection,
+        data: {
+          type: "FeatureCollection",
+          features: routeLabelFeatures,
+        } as GeoJSONFeatureCollection,
       };
     }
     if (markerFeatures.length > 0) {

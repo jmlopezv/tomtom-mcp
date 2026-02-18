@@ -202,7 +202,10 @@ export function createDataVizHandler() {
         }
       }
 
-      logger.info({ data_url, hasInline: !!geojson, layerCount: layers.length, title }, "Data viz request");
+      logger.info(
+        { data_url, hasInline: !!geojson, layerCount: layers.length, title },
+        "Data viz request"
+      );
 
       // Fetch or parse GeoJSON
       let rawData: any;
@@ -214,7 +217,7 @@ export function createDataVizHandler() {
           const sizeMB = (geojson!.length / (1024 * 1024)).toFixed(1);
           throw new Error(
             `Inline GeoJSON too large: ${sizeMB}MB. Maximum is ${MAX_INLINE_SIZE / (1024 * 1024)}MB. ` +
-            `For large datasets, host the file and use 'data_url' instead (up to ${MAX_URL_SIZE / (1024 * 1024)}MB).`
+              `For large datasets, host the file and use 'data_url' instead (up to ${MAX_URL_SIZE / (1024 * 1024)}MB).`
           );
         }
         try {
@@ -235,7 +238,7 @@ export function createDataVizHandler() {
       if (fc.features.length > MAX_FEATURES) {
         throw new Error(
           `Too many features: ${fc.features.length.toLocaleString()}. Maximum is ${MAX_FEATURES.toLocaleString()}. ` +
-          `Consider filtering or aggregating the data before visualization.`
+            `Consider filtering or aggregating the data before visualization.`
         );
       }
 

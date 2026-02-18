@@ -62,7 +62,12 @@ export function createTrafficHandler() {
       // Trimmed for agent context efficiency; app uses live SDK traffic modules
       const trimmed = trimTrafficResponse(result, BACKEND);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ ...trimmed as object, _meta: { show_ui } }, null, 2) }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({ ...(trimmed as object), _meta: { show_ui } }, null, 2),
+          },
+        ],
       };
     } catch (error: any) {
       logger.error({ error: error.message }, "❌ Traffic lookup failed");

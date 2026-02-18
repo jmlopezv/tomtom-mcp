@@ -43,11 +43,17 @@ const mockCanvasContext = {
   restore: vi.fn(),
   getContext: vi.fn(),
   set fillStyle(_v: any) {},
-  get fillStyle() { return "#000"; },
+  get fillStyle() {
+    return "#000";
+  },
   set strokeStyle(_v: any) {},
-  get strokeStyle() { return "#000"; },
+  get strokeStyle() {
+    return "#000";
+  },
   set lineWidth(_v: any) {},
-  get lineWidth() { return 1; },
+  get lineWidth() {
+    return 1;
+  },
   set lineJoin(_v: any) {},
   set lineCap(_v: any) {},
   set font(_v: any) {},
@@ -58,7 +64,9 @@ const mockCanvasContext = {
   set shadowOffsetX(_v: any) {},
   set shadowOffsetY(_v: any) {},
   set globalAlpha(_v: any) {},
-  get globalAlpha() { return 1; },
+  get globalAlpha() {
+    return 1;
+  },
 };
 
 vi.mock("skia-canvas", () => {
@@ -70,8 +78,12 @@ vi.mock("skia-canvas", () => {
         this.width = w;
         this.height = h;
       }
-      getContext() { return mockCanvasContext; }
-      async toBuffer() { return Buffer.from("fake-png-data"); }
+      getContext() {
+        return mockCanvasContext;
+      }
+      async toBuffer() {
+        return Buffer.from("fake-png-data");
+      }
     },
     loadImage: vi.fn().mockResolvedValue({
       width: 256,
@@ -91,10 +103,18 @@ vi.mock("../base/tomtomClient", () => ({
   },
   getEffectiveApiKey: vi.fn().mockReturnValue("test-api-key"),
   API_VERSION: {
-    SEARCH: 2, GEOCODING: 2, ROUTING: 1, TRAFFIC: 5, MAP: 1,
+    SEARCH: 2,
+    GEOCODING: 2,
+    ROUTING: 1,
+    TRAFFIC: 5,
+    MAP: 1,
   },
   ORBIS_API_VERSION: {
-    SEARCH: 1, GEOCODING: 1, ROUTING: 2, TRAFFIC: 1, MAP: 1,
+    SEARCH: 1,
+    GEOCODING: 1,
+    ROUTING: 2,
+    TRAFFIC: 1,
+    MAP: 1,
   },
   getSessionBackend: vi.fn(),
   setSessionContext: vi.fn(),
@@ -350,9 +370,7 @@ describe("Dynamic Map Service", () => {
         height: 600,
       };
 
-      await expect(renderDynamicMap(options)).rejects.toThrow(
-        "Map requires content to display"
-      );
+      await expect(renderDynamicMap(options)).rejects.toThrow("Map requires content to display");
     });
 
     it("should accept bbox with markers to constrain map bounds", async () => {

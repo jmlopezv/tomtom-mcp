@@ -112,7 +112,10 @@ export default [
         ResizeObserver: 'readonly',
         IntersectionObserver: 'readonly',
         getComputedStyle: 'readonly',
-        matchMedia: 'readonly'
+        matchMedia: 'readonly',
+        ImageData: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly'
       }
     }
   },
