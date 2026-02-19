@@ -6,6 +6,7 @@
 import {
   TomTomMap,
   TrafficFlowModule,
+  TrafficIncidentsModule,
   StandardStyleID,
   standardStyleIDs,
 } from "@tomtom-org/maps-sdk/map";
@@ -13,11 +14,15 @@ import {
 export interface MapControlsOptions {
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   showTrafficToggle?: boolean;
+  showIncidentsToggle?: boolean;
   showThemeToggle?: boolean;
   initialTrafficEnabled?: boolean;
+  initialIncidentsEnabled?: boolean;
   initialTheme?: "light" | "dark";
   /** Pass existing TrafficFlowModule to control instead of creating new one */
   externalTrafficModule?: TrafficFlowModule;
+  /** Pass existing TrafficIncidentsModule to control instead of creating new one */
+  externalIncidentsModule?: TrafficIncidentsModule;
   /** Called after a theme change once the new style has loaded. Use this to re-add custom sources/layers. */
   onThemeChange?: () => void;
 }
@@ -25,10 +30,13 @@ export interface MapControlsOptions {
 const DEFAULT_OPTIONS: Required<MapControlsOptions> = {
   position: "top-right",
   showTrafficToggle: true,
+  showIncidentsToggle: false,
   showThemeToggle: true,
   initialTrafficEnabled: false,
+  initialIncidentsEnabled: false,
   initialTheme: "light",
   externalTrafficModule: undefined as any,
+  externalIncidentsModule: undefined as any,
 };
 
 // Map theme names to StandardStyleID (correct SDK style names)
@@ -45,15 +53,19 @@ export async function createMapControls(
   options: MapControlsOptions = {}
 ): Promise<{
   trafficModule: TrafficFlowModule | null;
+  incidentsModule: TrafficIncidentsModule | null;
   setTheme: (theme: "light" | "dark") => void;
   setTrafficVisible: (visible: boolean) => void;
+  setIncidentsVisible: (visible: boolean) => void;
   destroy: () => void;
 }> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
   let trafficModule: TrafficFlowModule | null = null;
+  let incidentsModule: TrafficIncidentsModule | null = null;
   let currentTheme = opts.initialTheme;
   let trafficEnabled = opts.initialTrafficEnabled;
+  let incidentsEnabled = opts.initialIncidentsEnabled;
 
   // Create container
   const container = document.createElement("div");
@@ -104,6 +116,26 @@ export async function createMapControls(
     container.appendChild(trafficBtn);
   }
 
+  // Traffic incidents toggle button
+  let incidentsBtn: HTMLButtonElement | null = null;
+  if (opts.showIncidentsToggle && options.externalIncidentsModule) {
+    incidentsModule = options.externalIncidentsModule;
+    incidentsModule.setVisible(opts.initialIncidentsEnabled);
+    incidentsModule.setIconsVisible(opts.initialIncidentsEnabled);
+
+    incidentsBtn = document.createElement("button");
+    incidentsBtn.className = `map-control-btn incidents-btn ${incidentsEnabled ? "active" : ""}`;
+    incidentsBtn.title = "Toggle traffic incidents";
+    incidentsBtn.innerHTML = getIncidentsIcon();
+    incidentsBtn.addEventListener("click", () => {
+      incidentsEnabled = !incidentsEnabled;
+      incidentsModule!.setVisible(incidentsEnabled);
+      incidentsModule!.setIconsVisible(incidentsEnabled);
+      incidentsBtn!.classList.toggle("active", incidentsEnabled);
+    });
+    container.appendChild(incidentsBtn);
+  }
+
   // Add to map container
   const mapContainer = map.mapLibreMap.getContainer();
   mapContainer.appendChild(container);
@@ -113,6 +145,7 @@ export async function createMapControls(
 
   return {
     trafficModule,
+    incidentsModule,
     setTheme: (theme: "light" | "dark") => {
       currentTheme = theme;
       map.setStyle(THEME_STYLES[theme]);
@@ -130,6 +163,16 @@ export async function createMapControls(
       }
       if (trafficBtn) {
         trafficBtn.classList.toggle("active", visible);
+      }
+    },
+    setIncidentsVisible: (visible: boolean) => {
+      incidentsEnabled = visible;
+      if (incidentsModule) {
+        incidentsModule.setVisible(visible);
+        incidentsModule.setIconsVisible(visible);
+      }
+      if (incidentsBtn) {
+        incidentsBtn.classList.toggle("active", visible);
       }
     },
     destroy: () => {
@@ -163,6 +206,14 @@ function getTrafficIcon(): string {
     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
     <path d="M2 17l10 5 10-5"/>
     <path d="M2 12l10 5 10-5"/>
+  </svg>`;
+}
+
+function getIncidentsIcon(): string {
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>`;
 }
 

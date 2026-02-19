@@ -175,3 +175,41 @@ html, body {
     color: #333333;
     line-height: 1;
 }
+
+/* ---------------------------------------------------------------------------
+   Incident popup styles (for traffic incidents toggle)
+   --------------------------------------------------------------------------- */
+
+.incident-popup {
+    padding: 16px 20px 14px;
+    min-width: 220px;
+    max-width: 300px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.incident-popup-title {
+    font-size: 16px;
+    color: #111827;
+    font-weight: 700;
+    margin-bottom: 12px;
+    margin-right: 20px;
+    line-height: 1.3;
+}
+
+.incident-popup-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.incident-popup-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-top: 1px;
+    color: #9ca3af;
+}

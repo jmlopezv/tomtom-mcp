@@ -4,7 +4,7 @@
  */
 
 import { App } from "@modelcontextprotocol/ext-apps";
-import { TomTomMap } from "@tomtom-org/maps-sdk/map";
+import { TomTomMap, TrafficIncidentsModule } from "@tomtom-org/maps-sdk/map";
 import { Popup, Marker } from "maplibre-gl";
 import { createMapControls } from "../../shared/map-controls";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
@@ -61,6 +61,7 @@ let pendingData: CachedMapState | null = null;
 let activePopup: Popup | null = null;
 let currentMapState: CachedMapState | null = null;
 let polygonLabelMarkers: Marker[] = [];
+let trafficIncidentsModule: TrafficIncidentsModule | null = null;
 
 // ─── Map Pin Marker Image ────────────────────────────────────────────────────
 
@@ -209,11 +210,25 @@ async function initializeMap(mapState: CachedMapState): Promise<void> {
     },
   });
 
-  // Add map controls for theme and traffic
+  // Initialize traffic incidents module (hidden by default, user toggles via button)
+  trafficIncidentsModule = await TrafficIncidentsModule.get(map, { visible: false });
+
+  // Set up incident click/hover handlers
+  trafficIncidentsModule.events.on("click", (feature: any, lngLat: any) => {
+    const props = feature.properties || {};
+    showPopup([lngLat.lng, lngLat.lat], buildIncidentPopupHtml(props), [0, -12]);
+  });
+  trafficIncidentsModule.events.on("hover", () => {
+    if (map) map.mapLibreMap.getCanvas().style.cursor = "pointer";
+  });
+
+  // Add map controls for theme, traffic flow, and traffic incidents
   await createMapControls(map, {
     position: "top-right",
     showTrafficToggle: true,
+    showIncidentsToggle: true,
     showThemeToggle: true,
+    externalIncidentsModule: trafficIncidentsModule,
     onThemeChange: () => {
       if (currentMapState && map && mapReady) {
         addSourcesAndLayers(currentMapState);
@@ -398,6 +413,74 @@ function buildPolygonPopupHtml(props: Record<string, unknown>): string {
       if (value == null || value === "") continue;
       html += `<div class="dm-popup-row"><span class="dm-popup-key">${escapeHtml(key)}</span><span class="dm-popup-value">${escapeHtml(String(value))}</span></div>`;
     }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// ─── Traffic Incident Popup ──────────────────────────────────────────────────
+
+const MAGNITUDE_STYLES: Record<number, { label: string; color: string }> = {
+  0: { label: "Unknown", color: "#6b7280" },
+  1: { label: "Minor", color: "#ca8a04" },
+  2: { label: "Moderate", color: "#ea580c" },
+  3: { label: "Major", color: "#dc2626" },
+  4: { label: "Indefinite", color: "#991b1b" },
+};
+
+const ICON_WARNING = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+const ICON_LOCATION = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+const ICON_CLOCK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+function buildIncidentPopupHtml(props: Record<string, unknown>): string {
+  const descriptions: string[] = [];
+  for (let i = 0; ; i++) {
+    const desc = props[`description_${i}`] as string | undefined;
+    if (!desc) break;
+    descriptions.push(desc);
+  }
+
+  const magnitude = Number(props.magnitude_of_delay ?? -1);
+  const magnitudeStyle = MAGNITUDE_STYLES[magnitude];
+  const delay = props.delay ? Number(props.delay) : 0;
+  const roadCategory = (props.road_category as string) || "";
+  const roadSubcategory = (props.road_subcategory as string) || "";
+
+  const title = descriptions[0] || "Traffic Incident";
+  const subtitle = descriptions.length > 1 ? descriptions.slice(1).join(", ") : "";
+
+  let html = `<div class="incident-popup">`;
+
+  html += `<div class="incident-popup-title">${escapeHtml(title)}</div>`;
+
+  if (magnitudeStyle) {
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon" style="color:${magnitudeStyle.color}">${ICON_WARNING}</span>`;
+    html += `<span style="color:${magnitudeStyle.color};font-weight:600">${magnitudeStyle.label}</span>`;
+    html += `</div>`;
+  }
+
+  const road = [roadCategory, roadSubcategory].filter(Boolean).join(" \u00b7 ");
+  if (road) {
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon">${ICON_LOCATION}</span>`;
+    html += `<span>${escapeHtml(subtitle ? `${subtitle} \u00b7 ${road}` : road)}</span>`;
+    html += `</div>`;
+  } else if (subtitle) {
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon">${ICON_LOCATION}</span>`;
+    html += `<span>${escapeHtml(subtitle)}</span>`;
+    html += `</div>`;
+  }
+
+  if (delay > 0) {
+    const mins = Math.round(delay / 60);
+    const delayText = mins > 0 ? `${mins} min delay` : `${delay}s delay`;
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon">${ICON_CLOCK}</span>`;
+    html += `<span>${escapeHtml(delayText)}</span>`;
     html += `</div>`;
   }
 
@@ -618,6 +701,12 @@ app.ontoolresult = async (r) => {
 };
 
 app.onteardown = async () => {
+  if (trafficIncidentsModule) {
+    trafficIncidentsModule.events.off("click");
+    trafficIncidentsModule.events.off("hover");
+    trafficIncidentsModule.setVisible(false);
+    trafficIncidentsModule = null;
+  }
   if (map) {
     clearMap();
   }
