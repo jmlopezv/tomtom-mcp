@@ -47,11 +47,11 @@
     },
     {
       "name": "tomtom-routing",
-      "description": "Calculate optimal routes between locations"
+      "description": "Calculate optimal routes between two locations with turn-by-turn directions, distance, and travel time"
     },
     {
       "name": "tomtom-waypoint-routing",
-      "description": "Multi-stop route planning Routing API"
+      "description": "Plan multi-stop routes through 3 or more waypoints in sequence"
     },
     {
       "name": "tomtom-reachable-range",
@@ -59,15 +59,15 @@
     },
     {
       "name": "tomtom-traffic",
-      "description": "Look up traffic incidents in an area (incidents, dangerous conditions, closures, etc.)"
+      "description": "Find and display traffic incidents, accidents, road closures, and congestion in an area"
     },
     {
       "name": "tomtom-static-map",
-      "description": "Generate custom map images"
+      "description": "Generate custom map images with specified center coordinates, zoom levels, and style options"
     },
     {
       "name": "tomtom-dynamic-map",
-      "description": "Advanced map rendering with custom markers, routes, polygons, and traffic visualization"
+      "description": "Render custom map images with markers, drawn lines, polygons, and area overlays"
     },
     {
       "name": "tomtom-ev-search",

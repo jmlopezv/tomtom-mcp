@@ -49,8 +49,7 @@ describe("createMapTools", () => {
       "tomtom-dynamic-map",
       expect.objectContaining({
         title: "TomTom Dynamic Map",
-        description:
-          "Advanced map rendering with custom markers, routes, polygons, and traffic visualization using server-side rendering",
+        description: expect.stringContaining("MAP VISUALIZATION"),
         inputSchema: expect.any(Object),
       }),
       expect.any(Function)

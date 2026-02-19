@@ -130,9 +130,12 @@ describe("createDynamicMapHandler", () => {
 
     const handler = createDynamicMapHandler();
     const params = {
-      isRoute: true,
-      origin: { lat: 52.374, lon: 4.8897 },
-      destination: { lat: 48.8566, lon: 2.3522 },
+      routePlans: [
+        {
+          origin: { lat: 52.374, lon: 4.8897 },
+          destination: { lat: 48.8566, lon: 2.3522 },
+        },
+      ],
     };
 
     const response = await handler(params);
@@ -143,7 +146,7 @@ describe("createDynamicMapHandler", () => {
     expect(mockLogger.error).toHaveBeenCalled();
   });
 
-  it("should handle route planning parameters", async () => {
+  it("should handle route planning parameters with routePlans", async () => {
     mockRenderDynamicMap.mockResolvedValue({
       base64: "route-image-data",
       contentType: "image/png",
@@ -153,10 +156,14 @@ describe("createDynamicMapHandler", () => {
 
     const handler = createDynamicMapHandler();
     const params = {
-      isRoute: true,
-      origin: { lat: 52.374, lon: 4.8897 },
-      destination: { lat: 48.8566, lon: 2.3522 },
-      waypoints: [{ lat: 50.8503, lon: 4.3517 }],
+      routePlans: [
+        {
+          origin: { lat: 52.374, lon: 4.8897 },
+          destination: { lat: 48.8566, lon: 2.3522 },
+          waypoints: [{ lat: 50.8503, lon: 4.3517 }],
+          label: "Amsterdam to Paris",
+        },
+      ],
       showLabels: true,
       use_orbis: true,
     };

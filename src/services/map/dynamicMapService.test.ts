@@ -184,7 +184,7 @@ describe("Dynamic Map Service", () => {
       expect(result.mapState?.sources.markers).toBeDefined();
     });
 
-    it("should handle route planning mode", async () => {
+    it("should handle route planning mode with routePlans", async () => {
       const routingModule = await import("../routing/routingService");
       const mockRouteResponse = {
         routes: [
@@ -211,9 +211,14 @@ describe("Dynamic Map Service", () => {
       vi.spyOn(routingModule, "getMultiWaypointRoute").mockResolvedValue(mockRouteResponse);
 
       const options = {
-        origin: { lat: 52.374, lon: 4.8897 },
-        destination: { lat: 48.8566, lon: 2.3522 },
-        waypoints: [{ lat: 50.8503, lon: 4.3517 }],
+        routePlans: [
+          {
+            origin: { lat: 52.374, lon: 4.8897 },
+            destination: { lat: 48.8566, lon: 2.3522 },
+            waypoints: [{ lat: 50.8503, lon: 4.3517 }],
+            label: "Amsterdam to Paris",
+          },
+        ],
       };
 
       const result = await renderDynamicMap(options);
@@ -245,13 +250,11 @@ describe("Dynamic Map Service", () => {
       expect(result.base64).toBeDefined();
     });
 
-    it("should throw error when only origin is provided without destination", async () => {
-      const options = {
-        origin: { lat: 52.374, lon: 4.8897 },
-      };
+    it("should throw error when no content is provided", async () => {
+      const options = {};
 
       await expect(renderDynamicMap(options)).rejects.toThrow(
-        "Origin provided without destination"
+        "Map requires content to display"
       );
     });
 
@@ -299,7 +302,7 @@ describe("Dynamic Map Service", () => {
       expect(result.height).toBe(600); // MAX_HEIGHT
     });
 
-    it("should handle intelligent route calculation", async () => {
+    it("should handle intelligent route calculation with per-plan options", async () => {
       const mockRouteResponse = {
         routes: [
           {
@@ -326,11 +329,17 @@ describe("Dynamic Map Service", () => {
       const routingModule = await import("../routing/routingService");
       vi.spyOn(routingModule, "getRoute").mockResolvedValue(mockRouteResponse);
 
+      const origin = { lat: 52.374, lon: 4.8897 };
+      const destination = { lat: 52.365, lon: 4.895 };
       const options = {
-        origin: { lat: 52.374, lon: 4.8897 },
-        destination: { lat: 52.365, lon: 4.895 },
-        routeType: "fastest" as const,
-        travelMode: "car" as const,
+        routePlans: [
+          {
+            origin,
+            destination,
+            routeType: "fastest" as const,
+            travelMode: "car" as const,
+          },
+        ],
       };
 
       const result = await renderDynamicMap(options);
@@ -338,8 +347,8 @@ describe("Dynamic Map Service", () => {
       expect(result.contentType).toBe("image/png");
       expect(result.base64).toBeDefined();
       expect(routingModule.getRoute).toHaveBeenCalledWith(
-        options.origin,
-        options.destination,
+        origin,
+        destination,
         expect.objectContaining({
           routeType: "fastest",
           travelMode: "car",

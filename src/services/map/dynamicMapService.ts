@@ -23,6 +23,7 @@ import {
   CachedMapState,
   LayerDefinition,
   GeoJSONFeatureCollection,
+  RoutePlan,
 } from "./dynamicMapTypes";
 import { getRoute, getMultiWaypointRoute } from "../routing/routingService";
 import { RouteOptions } from "../routing/types";
@@ -77,6 +78,10 @@ const DEFAULT_OPTIONS = {
   showLabels: false,
   routeInfoDetail: "basic" as const,
 };
+
+// ─── Route Color Palette ─────────────────────────────────────────────────────
+// 6 visually distinct colors for distinguishing multiple route plans on the map.
+const ROUTE_COLORS = ["#4285F4", "#EA4335", "#34A853", "#FBBC04", "#8E24AA", "#00ACC1"];
 
 // ─── Category Color Palette ──────────────────────────────────────────────────
 // 12 visually distinct colors for automatic category-based coloring.
@@ -798,8 +803,7 @@ function buildMarkerFeatures(markers: any[]): any[] {
 
 function buildRouteFeatures(
   routes: Array<Array<{ lat: number; lon: number }>>,
-  routeData: any[],
-  routeLabel?: string
+  routeData: any[]
 ): any[] {
   return routes
     .map((route, routeIndex) => {
@@ -821,10 +825,10 @@ function buildRouteFeatures(
         lengthInMeters: 0,
         travelTimeInSeconds: 0,
         trafficDelayInSeconds: 0,
-        name: routeLabel || `Route ${routeIndex + 1}`,
+        name: `Route ${routeIndex + 1}`,
       };
 
-      let routeSummary = currentRouteData.name || routeLabel || `Route ${routeIndex + 1}`;
+      let routeSummary = currentRouteData.name || `Route ${routeIndex + 1}`;
       if (currentRouteData.distance && currentRouteData.travelTime) {
         routeSummary += ` (${currentRouteData.distance}, ${currentRouteData.travelTime})`;
         if (currentRouteData.trafficDelayInSeconds > 0) {
@@ -838,7 +842,7 @@ function buildRouteFeatures(
         properties: {
           id: routeIndex,
           label: routeSummary,
-          routeName: currentRouteData.name || routeLabel || `Route ${routeIndex + 1}`,
+          routeName: currentRouteData.name || `Route ${routeIndex + 1}`,
           distance: currentRouteData.distance,
           travelTime: currentRouteData.travelTime,
           trafficDelay: currentRouteData.trafficDelay,
@@ -1193,18 +1197,9 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     // ── Prepare markers ──────────────────────────────────────────────────
     let markers: any[] = finalOptions.markers ? [...finalOptions.markers] : [];
 
-    // Validate origin/destination pairing
-    const hasOrigin = !!finalOptions.origin;
-    const hasDestination = !!finalOptions.destination;
-
-    if (hasOrigin && !hasDestination) {
-      throw new IncorrectError("Origin provided without destination", {});
-    }
-    if (!hasOrigin && hasDestination) {
-      throw new IncorrectError("Destination provided without origin", {});
-    }
-
-    const isRoutePlanningMode = hasOrigin && hasDestination;
+    // Route planning mode — detected from routePlans array
+    const routePlans: RoutePlan[] = finalOptions.routePlans || [];
+    const isRoutePlanningMode = routePlans.length > 0;
 
     // Prepare polygons
     let polygons: any[] = finalOptions.polygons ? [...finalOptions.polygons] : [];
@@ -1218,43 +1213,6 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
 
     if (!isRoutePlanningMode && !hasMarkers && !hasPolygons && !hasDirectRoutes && !hasBbox) {
       throw new IncorrectError("Map requires content to display", {});
-    }
-
-    // ── Route planning markers ───────────────────────────────────────────
-    if (isRoutePlanningMode) {
-      const originCoords = extractCoordinates(finalOptions.origin, 0, "origin");
-      const destCoords = extractCoordinates(finalOptions.destination, 0, "destination");
-
-      if (!originCoords || !destCoords)
-        throw new Error("Invalid origin or destination coordinates");
-
-      markers.push({
-        lat: originCoords.lat,
-        lon: originCoords.lon,
-        label: (finalOptions.origin as any)?.label || "Start",
-        color: "#22c55e",
-      });
-
-      if (finalOptions.waypoints?.length) {
-        finalOptions.waypoints.forEach((wp, i) => {
-          const wpCoords = extractCoordinates(wp, i, "waypoint");
-          if (wpCoords) {
-            markers.push({
-              lat: wpCoords.lat,
-              lon: wpCoords.lon,
-              label: (wp as any)?.label || `Waypoint ${i + 1}`,
-              color: "#f97316",
-            });
-          }
-        });
-      }
-
-      markers.push({
-        lat: destCoords.lat,
-        lon: destCoords.lon,
-        label: (finalOptions.destination as any)?.label || "End",
-        color: "#ef4444",
-      });
     }
 
     // ── Calculate routes ─────────────────────────────────────────────────
@@ -1271,7 +1229,7 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
       name: string;
     }> = [];
 
-    // Handle direct routes
+    // Handle direct routes (drawn lines, not road-following)
     if ((finalOptions as any).routes?.length && !isRoutePlanningMode) {
       routes = (finalOptions as any).routes
         .map((route: any, routeIndex: number) => {
@@ -1286,7 +1244,6 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
             .map((c: any) => [c.lat, c.lon]);
 
           if (validCoords.length > 1) {
-            // Store route name so it appears in popup instead of "Route N"
             routeData.push({
               lengthInMeters: 0,
               travelTimeInSeconds: 0,
@@ -1299,7 +1256,6 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
               name: route.name || `Route ${routeIndex + 1}`,
             });
 
-            // Auto-add start/end markers if not present
             const start = validCoords[0];
             const end = validCoords[validCoords.length - 1];
 
@@ -1334,63 +1290,109 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
         })
         .filter((r: any) => r.length > 0);
     }
-    // Handle route planning mode (TomTom Routing API)
-    else if (isRoutePlanningMode) {
-      try {
-        const routeOptions: RouteOptions = {
-          routeType: finalOptions.routeType || "fastest",
-          travelMode: finalOptions.travelMode || "car",
-          avoid: finalOptions.avoid,
-          traffic: finalOptions.traffic || false,
-          instructionsType: "text",
-          sectionType: [],
-          computeTravelTimeFor: "all",
-        };
 
-        let routeResult;
-        if (finalOptions.waypoints?.length) {
-          routeResult = await getMultiWaypointRoute(
-            [finalOptions.origin!, ...finalOptions.waypoints, finalOptions.destination!],
-            routeOptions
-          );
-        } else {
-          routeResult = await getRoute(
-            finalOptions.origin!,
-            finalOptions.destination!,
-            routeOptions
-          );
-        }
+    // Handle route plans (TomTom Routing API — multiple independent trips)
+    if (isRoutePlanningMode) {
+      for (let planIdx = 0; planIdx < routePlans.length; planIdx++) {
+        const plan = routePlans[planIdx];
+        const planColor = plan.color || ROUTE_COLORS[planIdx % ROUTE_COLORS.length];
+        const planLabel = plan.label || `Route ${planIdx + 1}`;
 
-        if (routeResult?.routes?.length) {
-          routes = routeResult.routes.map((route, index) => {
-            const coordinates: Array<{ lat: number; lon: number }> = [];
-            route.legs?.forEach((leg) => {
-              leg.points?.forEach((point) => {
-                coordinates.push({ lat: point.latitude, lon: point.longitude });
-              });
-            });
+        try {
+          // Validate origin + destination
+          const originCoords = extractCoordinates(plan.origin, planIdx, "origin");
+          const destCoords = extractCoordinates(plan.destination, planIdx, "destination");
 
-            const lengthInMeters = route.summary?.lengthInMeters || 0;
-            const travelTimeInSeconds = route.summary?.travelTimeInSeconds || 0;
-            const trafficDelayInSeconds = route.summary?.trafficDelayInSeconds || 0;
+          if (!originCoords || !destCoords) {
+            logger.warn({ planIdx }, "⚠️ Invalid origin or destination coordinates in route plan, skipping");
+            continue;
+          }
 
-            routeData.push({
-              lengthInMeters,
-              travelTimeInSeconds,
-              trafficDelayInSeconds,
-              distance: formatDistance(lengthInMeters),
-              travelTime: formatTime(travelTimeInSeconds),
-              trafficDelay: formatTime(trafficDelayInSeconds),
-              trafficColor: getTrafficColor(travelTimeInSeconds, trafficDelayInSeconds),
-              hasTrafficData: trafficDelayInSeconds > 0,
-              name: finalOptions.routeLabel || `Route ${index + 1}`,
-            });
-
-            return coordinates;
+          // Add origin/waypoint/destination markers for this plan
+          markers.push({
+            lat: originCoords.lat,
+            lon: originCoords.lon,
+            label: plan.origin.label || `${planLabel} Start`,
+            color: planColor,
           });
+
+          if (plan.waypoints?.length) {
+            plan.waypoints.forEach((wp: { lat: number; lon: number; label?: string }, i: number) => {
+              const wpCoords = extractCoordinates(wp, i, "waypoint");
+              if (wpCoords) {
+                markers.push({
+                  lat: wpCoords.lat,
+                  lon: wpCoords.lon,
+                  label: wp.label || `${planLabel} Waypoint ${i + 1}`,
+                  color: "#f97316",
+                });
+              }
+            });
+          }
+
+          markers.push({
+            lat: destCoords.lat,
+            lon: destCoords.lon,
+            label: plan.destination.label || `${planLabel} End`,
+            color: planColor,
+          });
+
+          // Build route options from plan-level overrides
+          const routeOptions: RouteOptions = {
+            routeType: plan.routeType || "fastest",
+            travelMode: plan.travelMode || "car",
+            avoid: plan.avoid,
+            traffic: plan.traffic || false,
+            instructionsType: "text",
+            sectionType: [],
+            computeTravelTimeFor: "all",
+          };
+
+          // Call routing API
+          let routeResult;
+          if (plan.waypoints?.length) {
+            routeResult = await getMultiWaypointRoute(
+              [plan.origin, ...plan.waypoints, plan.destination],
+              routeOptions
+            );
+          } else {
+            routeResult = await getRoute(plan.origin, plan.destination, routeOptions);
+          }
+
+          if (routeResult?.routes?.length) {
+            for (const route of routeResult.routes) {
+              const coordinates: Array<{ lat: number; lon: number }> = [];
+              route.legs?.forEach((leg) => {
+                leg.points?.forEach((point) => {
+                  coordinates.push({ lat: point.latitude, lon: point.longitude });
+                });
+              });
+
+              const lengthInMeters = route.summary?.lengthInMeters || 0;
+              const travelTimeInSeconds = route.summary?.travelTimeInSeconds || 0;
+              const trafficDelayInSeconds = route.summary?.trafficDelayInSeconds || 0;
+
+              routeData.push({
+                lengthInMeters,
+                travelTimeInSeconds,
+                trafficDelayInSeconds,
+                distance: formatDistance(lengthInMeters),
+                travelTime: formatTime(travelTimeInSeconds),
+                trafficDelay: formatTime(trafficDelayInSeconds),
+                trafficColor: plan.color || getTrafficColor(travelTimeInSeconds, trafficDelayInSeconds),
+                hasTrafficData: trafficDelayInSeconds > 0,
+                name: planLabel,
+              });
+
+              routes.push(coordinates);
+            }
+          }
+        } catch (routeError) {
+          logger.warn(
+            { planIdx, label: planLabel, error: String(routeError) },
+            "Failed to calculate route plan, proceeding with remaining plans"
+          );
         }
-      } catch (routeError) {
-        logger.warn({ error: String(routeError) }, "Failed to calculate route, proceeding without");
       }
     }
 
@@ -1462,7 +1464,7 @@ export async function renderDynamicMap(options: DynamicMapOptions): Promise<Dyna
     const polygonCenterFeatures =
       polygonFeatures.length > 0 ? buildPolygonCenterFeatures(polygonFeatures, polygons) : [];
     const routeFeatures =
-      routes.length > 0 ? buildRouteFeatures(routes, routeData, finalOptions.routeLabel) : [];
+      routes.length > 0 ? buildRouteFeatures(routes, routeData) : [];
     const routeLabelFeatures =
       routeFeatures.length > 0 ? buildRouteLabelFeatures(routeFeatures) : [];
     const markerFeatures = markers.length > 0 ? buildMarkerFeatures(markers) : [];

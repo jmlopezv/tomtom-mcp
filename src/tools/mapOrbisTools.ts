@@ -39,7 +39,10 @@ export async function createMapOrbisTools(server: McpServer): Promise<void> {
     {
       title: "TomTom Dynamic Map",
       description:
-        "Advanced map rendering with custom markers, routes, polygons, and traffic visualization using server-side rendering with interactive map UI",
+        "Render a custom map image with markers, drawn lines, polygons, and area overlays — with interactive map UI. " +
+        "Use this for MAP VISUALIZATION: showing locations on a map, highlighting areas, or combining multiple visual elements in one view. " +
+        "Do NOT use this for: route calculations (use tomtom-routing), traffic incidents (use tomtom-traffic), or large-dataset visualization like heatmaps/clusters/choropleth (use tomtom-data-viz). " +
+        "The optional routePlans parameter can calculate and draw routes on the map, but only use it when you need routes combined with other map elements (markers, polygons) in a single image.",
       inputSchema: schemas.tomtomDynamicMapSchema as any,
       annotations: {
         title: "TomTom Dynamic Map",

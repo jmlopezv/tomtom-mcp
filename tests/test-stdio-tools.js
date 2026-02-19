@@ -681,10 +681,11 @@ const COMPREHENSIVE_TEST_SCENARIOS = {
     {
       name: 'Dynamic map route planning mode',
       params: {
-        isRoute: true,
-        origin: { lat: 52.3740, lon: 4.8897 },
-        destination: { lat: 48.8566, lon: 2.3522 },
-        waypoints: [{ lat: 50.8503, lon: 4.3517 }], // Brussels
+        routePlans: [{
+          origin: { lat: 52.3740, lon: 4.8897 },
+          destination: { lat: 48.8566, lon: 2.3522 },
+          waypoints: [{ lat: 50.8503, lon: 4.3517 }], // Brussels
+        }],
         showLabels: true,
         use_orbis: false // Test with TomTom Maps
       },
@@ -695,12 +696,14 @@ const COMPREHENSIVE_TEST_SCENARIOS = {
     {
       name: 'Dynamic map with traffic-aware route',
       params: {
-        origin: { lat: 52.3740, lon: 4.8897 },
-        destination: { lat: 52.3680, lon: 4.9000 },
-  traffic: TRAFFIC,
-        routeType: 'fastest',
-        travelMode: 'car',
-        routeLabel: "Amsterdam Traffic Route",
+        routePlans: [{
+          origin: { lat: 52.3740, lon: 4.8897 },
+          destination: { lat: 52.3680, lon: 4.9000 },
+          traffic: TRAFFIC,
+          routeType: 'fastest',
+          travelMode: 'car',
+          label: "Amsterdam Traffic Route",
+        }],
         width: 800,
         height: 600,
         use_orbis: false // Test with TomTom Maps

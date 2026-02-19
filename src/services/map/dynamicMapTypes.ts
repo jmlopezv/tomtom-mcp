@@ -32,6 +32,21 @@ export interface GeoJSONFeatureCollection {
 }
 
 /**
+ * A single route plan — one origin→destination trip
+ */
+export interface RoutePlan {
+  origin: { lat: number; lon: number; label?: string };
+  destination: { lat: number; lon: number; label?: string };
+  waypoints?: Array<{ lat: number; lon: number; label?: string }>;
+  label?: string;
+  routeType?: "fastest" | "shortest" | "eco" | "thrilling";
+  travelMode?: "car" | "truck" | "bicycle" | "pedestrian";
+  avoid?: string[];
+  traffic?: boolean;
+  color?: string;
+}
+
+/**
  * Dynamic Map display options interface
  */
 export interface DynamicMapOptions {
@@ -61,12 +76,12 @@ export interface DynamicMapOptions {
     icon?: string;
   }>;
 
-  // Polygons - Phase 2: Multi-polygon support with circles and polygons
+  // Polygons - Multi-polygon support with circles and polygons
   polygons?: Array<{
-    type?: "polygon" | "circle"; // Shape type
-    coordinates?: Array<[number, number]>; // [lon, lat] pairs for polygons
-    center?: { lat: number; lon: number }; // Center point for circles
-    radius?: number; // Radius in meters for circles
+    type?: "polygon" | "circle";
+    coordinates?: Array<[number, number]>;
+    center?: { lat: number; lon: number };
+    radius?: number;
     label?: string;
     fillColor?: string;
     strokeColor?: string;
@@ -74,29 +89,11 @@ export interface DynamicMapOptions {
     name?: string;
   }>;
 
-  // Route planning mode - auto-detected when origin and destination provided
-  origin?: {
-    lat: number;
-    lon: number;
-  };
-  destination?: {
-    lat: number;
-    lon: number;
-  };
-  waypoints?: Array<{
-    lat: number;
-    lon: number;
-  }>;
-
-  // Route calculation options
-  routeType?: "fastest" | "shortest" | "eco" | "thrilling";
-  travelMode?: "car" | "truck" | "bicycle" | "pedestrian";
-  avoid?: string[];
-  traffic?: boolean;
+  // Route planning — array of independent route calculations
+  routePlans?: RoutePlan[];
 
   // Display options
   showLabels?: boolean;
-  routeLabel?: string;
   routeInfoDetail?: "basic" | "compact" | "detailed" | "distance-time";
   use_orbis?: boolean;
 

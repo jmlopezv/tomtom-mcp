@@ -50,7 +50,10 @@ export function createMapTools(server: McpServer): void {
     {
       title: "TomTom Dynamic Map",
       description:
-        "Advanced map rendering with custom markers, routes, polygons, and traffic visualization using server-side rendering",
+        "Render a custom map image with markers, drawn lines, polygons, and area overlays using server-side rendering. " +
+        "Use this for MAP VISUALIZATION: showing locations on a map, highlighting areas, or combining multiple visual elements in one view. " +
+        "Do NOT use this for: route calculations (use tomtom-routing), or traffic incidents (use tomtom-traffic). " +
+        "The optional routePlans parameter can calculate and draw routes on the map, but only use it when you need routes combined with other map elements (markers, polygons) in a single image.",
       inputSchema: schemas.tomtomDynamicMapSchema as any,
       annotations: {
         title: "TomTom Dynamic Map",

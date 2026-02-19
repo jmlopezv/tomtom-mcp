@@ -31,7 +31,7 @@ import { z } from "zod";
  *
  * COMMON USE PATTERNS:
  * 1. Simple marker map: Provide 'markers' array and let width/height/zoom auto-calculate
- * 2. Route planning: Provide 'origin' and 'destination' for automatic route calculation
+ * 2. Route planning: Use 'routePlans' array for road-following route calculations
  * 3. Custom area visualization: Use 'polygons' with either polygon or circle types
  * 4. Fixed viewpoint: Specify exact 'bbox' or 'center'+'zoom' to control the map view
  */
@@ -187,7 +187,59 @@ const markerSchema = z.object({
     ),
 });
 
-// Route schema
+// Route plan schema — each entry is an independent origin→destination trip
+const routePlanSchema = z.object({
+  origin: originCoordinateSchema.describe(
+    "Starting point for this route plan. EXAMPLE: {lat: 52.3676, lon: 4.9041, label: 'Amsterdam Central'}."
+  ),
+  destination: destinationCoordinateSchema.describe(
+    "End point for this route plan. EXAMPLE: {lat: 52.36, lon: 4.8852, label: 'Rijksmuseum'}."
+  ),
+  waypoints: z
+    .array(waypointCoordinateSchema)
+    .optional()
+    .describe(
+      "Optional intermediate stops for this route. EXAMPLE: [{lat: 52.3745, lon: 4.8979, label: 'Anne Frank House'}]."
+    ),
+  label: z
+    .string()
+    .optional()
+    .describe(
+      "Display name for this route (shown in popups and labels). EXAMPLE: 'Morning Commute' or 'Scenic Route'."
+    ),
+  routeType: z
+    .enum(["fastest", "shortest", "eco", "thrilling"])
+    .optional()
+    .describe(
+      "Route calculation strategy. DEFAULT: 'fastest'. EXAMPLE: 'shortest' for minimum distance."
+    ),
+  travelMode: z
+    .enum(["car", "truck", "bicycle", "pedestrian"])
+    .optional()
+    .describe(
+      "Mode of transport. DEFAULT: 'car'. EXAMPLE: 'pedestrian' for walking routes."
+    ),
+  avoid: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Road types to avoid. EXAMPLE: ['tollRoads', 'motorways']."
+    ),
+  traffic: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether to include live traffic data. DEFAULT: false."
+    ),
+  color: z
+    .string()
+    .optional()
+    .describe(
+      "Hex color override for this route line. If omitted, a distinct color is auto-assigned. EXAMPLE: '#FF0000' for red."
+    ),
+});
+
+// Route schema (direct drawn lines, NOT road-following)
 const routeSchema = z.object({
   points: z
     .array(routeCoordinateSchema)
@@ -304,7 +356,7 @@ const refinedPolygonSchema = polygonSchema.refine(
  *
  * COMMON PATTERNS:
  * 1. Simple marker map: Provide 'markers' array and let width/height/zoom auto-calculate
- * 2. Route planning: Provide 'origin' and 'destination' for automatic route calculation
+ * 2. Route planning: Use 'routePlans' array for road-following route calculations
  * 3. Custom area visualization: Use 'polygons' with either polygon or circle types
  * 4. Fixed viewpoint: Specify exact 'bbox' or 'center'+'zoom' to control the map view
  *
@@ -370,7 +422,7 @@ export const tomtomDynamicMapSchema = {
     .array(routeSchema)
     .optional()
     .describe(
-      "Draw straight lines between coordinates — for visualizing custom paths, connections, or external data (e.g. flight paths, supply chains, hiking trails). These are NOT road-following routes and have no distance/time info. For actual driving or walking routes that follow roads, use 'origin' + 'destination' instead. EXAMPLE: [{points: [{lat: 52.3676, lon: 4.9041}, {lat: 52.36, lon: 4.8852}], color: '#0000FF', name: 'Flight Path'}]."
+      "Draw straight lines between coordinates — for visualizing custom paths, connections, or external data (e.g. flight paths, supply chains, hiking trails). These are NOT road-following routes and have no distance/time info. For actual driving or walking routes that follow roads, use 'routePlans' instead. EXAMPLE: [{points: [{lat: 52.3676, lon: 4.9041}, {lat: 52.36, lon: 4.8852}], color: '#0000FF', name: 'Flight Path'}]."
     ),
 
   polygons: z
@@ -380,24 +432,12 @@ export const tomtomDynamicMapSchema = {
       "Array of polygons and circles to display on the map. Supports both custom polygon shapes (with coordinate arrays) and circular areas (with center point and radius). Each shape can have custom styling and labels. EXAMPLE for polygon: [{type: 'polygon', coordinates: [[4.9041, 52.3676], [4.8979, 52.3745], [4.8852, 52.36], [4.9041, 52.3676]], fillColor: 'rgba(255,0,0,0.3)', label: 'Tourist Area'}]. EXAMPLE for circle: [{type: 'circle', center: {lat: 52.3676, lon: 4.9041}, radius: 1000, fillColor: 'rgba(0,0,255,0.2)', label: '1km Radius'}]."
     ),
 
-  // Route planning mode (auto-detected when origin and destination provided)
-  origin: originCoordinateSchema
+  // Route planning mode — array of independent route calculations
+  routePlans: z
+    .array(routePlanSchema)
     .optional()
     .describe(
-      "Starting point for road-following route calculation. Use with 'destination' to get a real driving/walking route with distance, travel time, and traffic info. This is the correct choice when the user asks 'how to get from A to B' or 'route from X to Y'. Can include optional 'label' field. DEFAULT label: 'Start'. EXAMPLE: {lat: 52.3676, lon: 4.9041, label: 'Amsterdam Central'}."
-    ),
-
-  destination: destinationCoordinateSchema
-    .optional()
-    .describe(
-      "End point for road-following route calculation. Use with 'origin' to get a real driving/walking route with distance, travel time, and traffic info. Can include optional 'label' field. DEFAULT label: 'End'. EXAMPLE: {lat: 52.36, lon: 4.8852, label: 'Rijksmuseum'}."
-    ),
-
-  waypoints: z
-    .array(waypointCoordinateSchema)
-    .optional()
-    .describe(
-      "Optional waypoints for route planning when using origin and destination. Each can include optional 'label' field. DEFAULT labels: 'Waypoint 1', 'Waypoint 2', etc. EXAMPLE: [{lat: 52.3745, lon: 4.8979, label: 'Anne Frank House'}]."
+      "Array of route calculations to draw on the map. Each entry is an independent origin→destination trip calculated via TomTom Routing API. NOTE: For standalone route queries (directions, travel time, distance), prefer the tomtom-routing tool instead. Use routePlans here only when you need to visualize calculated routes alongside other map elements (markers, polygons) in a single map image. Each plan can have its own routeType, travelMode, and color. EXAMPLE: [{origin: {lat: 52.37, lon: 4.89}, destination: {lat: 52.36, lon: 4.89}, label: 'Morning Commute'}, {origin: {lat: 48.86, lon: 2.35}, destination: {lat: 48.85, lon: 2.29}, label: 'Paris Tour'}]."
     ),
 
   // Display options
@@ -408,18 +448,11 @@ export const tomtomDynamicMapSchema = {
       "Whether to show text labels on markers, routes, and polygons. DEFAULT: false. EXAMPLE: true to display all labels."
     ),
 
-  routeLabel: z
-    .string()
-    .optional()
-    .describe(
-      "Custom label for routes when using origin/destination. Used when showLabels=true. EXAMPLE: 'Scenic Route' or 'Fastest Path'."
-    ),
-
   routeInfoDetail: z
     .enum(["basic", "compact", "detailed", "distance-time"])
     .optional()
     .describe(
-      "Level of route information to display when using origin/destination. OPTIONS: 'basic' (simple), 'compact' (short), 'detailed' (full), 'distance-time' (time/distance only). DEFAULT: 'basic'. EXAMPLE: 'distance-time' to show just the travel distance and time."
+      "Level of route information to display when using routePlans. OPTIONS: 'basic' (simple), 'compact' (short), 'detailed' (full), 'distance-time' (time/distance only). DEFAULT: 'basic'. EXAMPLE: 'distance-time' to show just the travel distance and time."
     ),
 
   // Image response detail level
