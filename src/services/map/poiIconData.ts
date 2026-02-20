@@ -182,37 +182,67 @@ const CATEGORY_ALIASES: Record<string, string> = {
   retail: "shop",
   store: "shop",
   boutique: "shop",
-  // Transit
+  outlet: "shop",
+  "department store": "shop",
+  mall: "shop",
+  marketplace: "market",
+  "flea market": "market",
+  "farmers market": "market",
+  // Transit — general
   "transit hub": "transport access",
   transit: "transport access",
   "public transport": "transport access",
   transportation: "transport access",
   "transport hub": "transport access",
+  commuter: "transport access",
+  "commuter station": "transport access",
+  // Train
   "railway station": "train station",
   railway: "train station",
+  rail: "train station",
+  "rail station": "train station",
+  intercity: "train station",
+  // Subway / Metro
   "metro station": "subway",
   metro: "subway",
   "subway station": "subway",
   underground: "subway",
+  tube: "subway",
+  "tube station": "subway",
+  "rapid transit": "subway",
   // Tram
   trolley: "tram",
   streetcar: "tram",
   "light rail": "tram",
   "light railway": "tram",
+  tramway: "tram",
   // Taxi
   taxi: "taxi stand",
   cab: "taxi stand",
   rideshare: "taxi stand",
-  ride: "taxi stand",
+  "ride hailing": "taxi stand",
+  "taxi rank": "taxi stand",
+  minicab: "taxi stand",
   // Aerialway
   "cable car": "aerialway station",
   gondola: "aerialway station",
   "ski lift": "aerialway station",
   "aerial tramway": "aerialway station",
   chairlift: "aerialway station",
+  funicular: "aerialway station",
+  ropeway: "aerialway station",
   // Bus
   "bus station": "bus stop",
   "bus terminal": "bus stop",
+  "bus depot": "bus stop",
+  coach: "bus stop",
+  "coach station": "bus stop",
+  // Ferry
+  "ferry terminal": "ferry",
+  "boat terminal": "ferry",
+  port: "ferry",
+  harbour: "ferry",
+  harbor: "ferry",
   // Bar & Nightlife
   "bar & nightlife": "nightlife",
   "bar and nightlife": "nightlife",
@@ -220,8 +250,12 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "bars and nightlife": "nightlife",
   nightclub: "nightlife",
   lounge: "nightlife",
+  disco: "nightlife",
+  "dance club": "nightlife",
   bar: "pub - bar",
   pub: "pub - bar",
+  tavern: "pub - bar",
+  "cocktail bar": "pub - bar",
   // Landmark & Historic
   landmark: "tourist attraction",
   landmarks: "tourist attraction",
@@ -246,27 +280,52 @@ const CATEGORY_ALIASES: Record<string, string> = {
   synagogue: "place of worship",
   cathedral: "place of worship",
   chapel: "place of worship",
+  shrine: "place of worship",
+  monastery: "place of worship",
+  pagoda: "place of worship",
   // Fuel
   "gas station": "fuel",
   "petrol station": "fuel",
   petrol: "fuel",
+  gas: "fuel",
+  "filling station": "fuel",
+  "fuel station": "fuel",
   // Accommodation
   hotel: "hotel - motel",
   motel: "hotel - motel",
   accommodation: "hotel - motel",
   lodging: "hotel - motel",
+  hostel: "hotel - motel",
+  inn: "hotel - motel",
+  "bed and breakfast": "hotel - motel",
+  "b&b": "hotel - motel",
+  guesthouse: "hotel - motel",
+  resort: "hotel - motel",
   // Medical
   hospital: "hospital - polyclinic",
   polyclinic: "hospital - polyclinic",
   clinic: "hospital - polyclinic",
+  "medical center": "hospital - polyclinic",
+  "medical centre": "hospital - polyclinic",
+  "health center": "hospital - polyclinic",
+  "health centre": "hospital - polyclinic",
+  "urgent care": "hospital - polyclinic",
+  // Pharmacy
+  drugstore: "pharmacy",
+  chemist: "pharmacy",
   // Finance
   atm: "cash dispenser",
+  "cash machine": "cash dispenser",
+  "money exchange": "exchange",
+  "currency exchange": "exchange",
   // EV
   "ev charging": "ev charger",
   "ev charging station": "ev charger",
   "electric vehicle": "ev charger",
   "charging station": "ev charger",
+  charger: "ev charger",
   // Arts & Entertainment
+  entertainment: "theatre",
   "arts venue": "theatre",
   arts: "theatre",
   "performing arts": "theatre",
@@ -277,20 +336,37 @@ const CATEGORY_ALIASES: Record<string, string> = {
   gallery: "museum",
   "art gallery": "museum",
   "art museum": "museum",
+  exhibition: "museum",
   "movie theater": "cinema",
   "movie theatre": "cinema",
   movies: "cinema",
+  multiplex: "cinema",
   // Food & Grocery
   grocery: "supermarket",
   "grocery store": "supermarket",
   groceries: "supermarket",
   dining: "restaurant",
   food: "restaurant",
+  cafe: "restaurant",
+  coffee: "restaurant",
+  "coffee shop": "restaurant",
+  bistro: "restaurant",
+  diner: "restaurant",
+  eatery: "restaurant",
+  cafeteria: "restaurant",
+  // Education
+  university: "school",
+  college: "school",
+  academy: "school",
+  institute: "school",
+  education: "school",
   // Sports & Fitness
   gym: "sports center",
   fitness: "sports center",
   "fitness center": "sports center",
+  "fitness centre": "sports center",
   sports: "sports center",
+  "sports club": "sports center",
   // Ice
   "ice rink": "ice skating ring",
   "skating rink": "ice skating ring",
@@ -301,26 +377,51 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "town hall": "government office",
   municipality: "government office",
   "civic center": "government office",
-  // Emergency
+  "civic centre": "government office",
+  embassy: "government office",
+  consulate: "government office",
+  courthouse: "court",
+  // Emergency & Services
   "fire station": "firestation",
   "fire department": "firestation",
+  "fire brigade": "firestation",
+  police: "police station",
+  "police department": "police station",
   "post office": "courier drop box",
+  postal: "courier drop box",
   // Travel
   "rest stop": "rest area",
   "service station": "service area",
   // Drinks
   wine: "winery",
   vineyard: "winery",
+  brewery: "winery",
   // Recreation
   aquarium: "zoo",
+  "wildlife park": "zoo",
+  safari: "zoo",
   "theme park": "amusement park",
-  // Tolls & Parking
+  fairground: "amusement park",
+  "water park": "amusement park",
+  // Parking
   toll: "tollgate",
   parking: "parking garage",
   "parking lot": "parking garage",
+  "car park": "parking garage",
+  "multi storey car park": "parking garage",
+  "park and ride": "parking garage",
   // Organization
   ngo: "ngo",
   nonprofit: "ngo",
+  charity: "welfare orginization",
+  // Beach & Outdoors
+  seaside: "beach",
+  coast: "beach",
+  shore: "beach",
+  // Camping
+  "caravan park": "campsite",
+  "rv park": "campsite",
+  camping: "campsite",
   // Direct matches (aliases that match icon keys for completeness)
   "fast food": "fast food",
   "car wash": "car wash",
@@ -334,55 +435,11 @@ const ICON_KEYS = Object.keys(POI_ICON_SVGS).sort((a, b) => b.length - a.length)
 const ALIAS_KEYS = Object.keys(CATEGORY_ALIASES).sort((a, b) => b.length - a.length);
 
 /**
- * Levenshtein edit distance between two strings.
- * Uses two reusable flat buffers (previous + current row) to avoid
- * allocating a full m×n matrix on every call.
- */
-const _MAX_LEV = 64;
-let _prev = new Uint16Array(_MAX_LEV + 1);
-let _curr = new Uint16Array(_MAX_LEV + 1);
-
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-
-  // Grow buffers if needed (rare — only if a key is longer than 64 chars)
-  if (n + 1 > _prev.length) {
-    _prev = new Uint16Array(n + 1);
-    _curr = new Uint16Array(n + 1);
-  }
-
-  // Initialize previous row: distance from empty string to b[0..j]
-  for (let j = 0; j <= n; j++) _prev[j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    _curr[0] = i;
-    const ai = a.charCodeAt(i - 1);
-    for (let j = 1; j <= n; j++) {
-      const cost = ai === b.charCodeAt(j - 1) ? 0 : 1;
-      const del = _prev[j] + 1;
-      const ins = _curr[j - 1] + 1;
-      const sub = _prev[j - 1] + cost;
-      _curr[j] = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
-    }
-    // Swap rows
-    const tmp = _prev;
-    _prev = _curr;
-    _curr = tmp;
-  }
-
-  return _prev[n];
-}
-
-/**
  * Resolve a category string to a POI icon key using multi-level matching:
  *  1. Exact match — "restaurant" → "restaurant"
  *  2. Alias match — "gas station" → "fuel"
  *  3. Contains match — "Italian Restaurant" contains "restaurant" → match
  *  4. Word-level alias — "EV Charging Point" contains "ev charging" alias → "ev charger"
- *  5. Fuzzy match (Levenshtein) — "restraunt" ≈ "restaurant" → match (threshold: 30% of length, min 2)
  *
  * Returns the icon key or null if no match is found.
  */
@@ -411,35 +468,7 @@ export function resolveIconKey(category: string): string | null {
     }
   }
 
-  // 5. Fuzzy match — Levenshtein distance with adaptive threshold
-  //    Threshold: max(2, floor(length * 0.3)) — short words need near-exact, longer words get more tolerance
-  let bestKey: string | null = null;
-  let bestDist = Infinity;
-
-  for (const key of ICON_KEYS) {
-    if (key === "generic") continue;
-    const threshold = Math.max(2, Math.floor(key.length * 0.3));
-    const dist = levenshtein(normalized, key);
-    if (dist <= threshold && dist < bestDist) {
-      bestDist = dist;
-      bestKey = key;
-    }
-  }
-
-  // Also check fuzzy against alias keys
-  for (const aliasKey of ALIAS_KEYS) {
-    const threshold = Math.max(2, Math.floor(aliasKey.length * 0.3));
-    const dist = levenshtein(normalized, aliasKey);
-    if (dist <= threshold && dist < bestDist) {
-      const target = CATEGORY_ALIASES[aliasKey];
-      if (target && POI_ICON_SVGS[target]) {
-        bestDist = dist;
-        bestKey = target;
-      }
-    }
-  }
-
-  return bestKey;
+  return null;
 }
 
 // ── SVG path extraction ────────────────────────────────────────────────────
