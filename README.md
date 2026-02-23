@@ -23,7 +23,7 @@ The **TomTom MCP Server** simplifies geospatial development by providing seamles
   - [TomTom Orbis Maps (optional backend)](#tomtom-orbis-maps-optional-backend)
   - [How dynamic map tool works](#how-dynamic-map-tool-works)
 - [Debug UI](#debug-ui)
-- [Contributing \& Local Development](#contributing--local-development)
+- [Local Development](#local-development)
   - [Setup](#setup)
   - [Testing](#testing)
   - [Testing Requirements](#testing-requirements)
@@ -77,8 +77,8 @@ echo "TOMTOM_API_KEY=your_api_key" > .env
 # Option 2: Environment variable
 export TOMTOM_API_KEY=your_api_key
 
-# option 3: Pass as CLI argument
-npx @tomtom-org/tomtom-mcp@latest
+# Option 3: Pass as CLI argument
+TOMTOM_API_KEY=your_api_key npx @tomtom-org/tomtom-mcp@latest
 ```
 
 #### Environment Variables
@@ -87,6 +87,7 @@ npx @tomtom-org/tomtom-mcp@latest
 |----------|-------------|---------|
 | `TOMTOM_API_KEY` | Your TomTom API key | - |
 | `MAPS` | Backend to use: `tomtom-maps` (TomTom Maps) or `tomtom-orbis-maps` (TomTom Orbis Maps) | `tomtom-maps` |
+| `PORT` | Port for the HTTP server | `3000` |
 | `LOG_LEVEL` | Logging level: `debug`, `info`, `warn`, or `error`. Use `debug` for local development to see all logs | `info` |
 
 ---
@@ -101,16 +102,20 @@ npx @tomtom-org/tomtom-mcp@latest
 
 **HTTP Mode (for web applications and API integration):**
 ```bash
+npm run build             # Build first (required)
 npm run start:http
-# or after building the project
+# or run the built binary directly
 node bin/tomtom-mcp-http.js
 ```
 
-When running in HTTP mode, you need to include your API key in the `tomtom-api-key` header:
+When running in HTTP mode, you need to include your API key in the `tomtom-api-key` header. You can also optionally set the maps backend per-request using the `tomtom-maps-backend` header:
 
 ```
 tomtom-api-key: <API_KEY>
+tomtom-maps-backend: tomtom-maps        # or tomtom-orbis-maps
 ```
+
+> **Note:** The `tomtom-maps-backend` header is only used when the server is started without the `MAPS` env var (dual-backend mode). If `MAPS` is set at startup, the header is ignored and the server uses the fixed backend.
 
 For example, to make a request using curl:
 ```bash
@@ -151,35 +156,18 @@ cd tomtom-mcp
 docker compose up
 ```
 
-```bash
-curl --location 'http://localhost:3000/mcp' \
---header 'Accept: application/json,text/event-stream' \
---header 'tomtom-api-key: <API KEY>' \
---header 'Content-Type: application/json' \
---data '{
-  "method": "tools/call",
-  "params": {
-    "name": "tomtom-geocode",
-    "arguments": {
-        "query": "Amsterdam Central Station"
-    }
-  },
-  "jsonrpc": "2.0",
-  "id": 24
-}'
-```
+Both Docker options run the server in HTTP mode. Pass your API key via the `tomtom-api-key` header as shown in the [HTTP Mode](#usage) curl example above.
 
 ---
 
 ## Integration Guides
-2. **Connect via HTTP client**: Send requests to `http://localhost:3000/mcp` with your API key in the `tomtom-api-key` header.
 TomTom MCP Server can be easily integrated into various AI development environments and tools.
 
 These guides help you integrate the MCP server with your tools and environments:
 - [Claude Desktop Setup](./docs/claude-desktop-setup.md) - Instructions for configuring Claude Desktop to work with TomTom MCP server
 - [VS Code Setup](./docs/vscode-setup.md) - Setting up a development environment in Visual Studio Code
 - [Cursor AI Integration](./docs/cursor-setup.md) - Guide for integrating TomTom MCP server with Cursor AI
-- [WinSurf Integration](./docs/windsurf-setup.md) - Instructions for configuring WindSurf to use TomTom MCP server
+- [Windsurf Integration](./docs/windsurf-setup.md) - Instructions for configuring Windsurf to use TomTom MCP server
 - [Smolagents Integration](./docs/smolagents/smolagents-setup.md) - Example showing how to connect Smolagents AI agents to TomTom MCP server.
 
 ---
@@ -204,7 +192,9 @@ These guides help you integrate the MCP server with your tools and environments:
 
 ### TomTom Orbis Maps (optional backend)
 
-By default the MCP tools use TomTom Maps APIs listed above. We also support using TomTom Orbis Maps for the same tools. To enable TomTom Orbis Maps for all tools set the environment variable `MAPS=tomtom-orbis-maps` 
+By default the MCP tools use TomTom Maps APIs listed above. We also support using TomTom Orbis Maps for the same tools. To enable TomTom Orbis Maps for all tools set the environment variable `MAPS=tomtom-orbis-maps`.
+
+> **Note:** The Orbis Maps backend includes all the tools from TomTom Maps plus additional Orbis-exclusive tools: `tomtom-ev-routing`, `tomtom-search-along-route`, `tomtom-area-search`, `tomtom-ev-search`, and `tomtom-data-viz`. The `tomtom-static-map` tool is only available with the default TomTom Maps backend.
 
 
 | Tool | Description | TomTom Orbis Maps API (documentation) |
@@ -273,11 +263,11 @@ cd ui && npm start  # Start only the UI host (assumes MCP server is already runn
 
 ---
 
-## Contributing & Local Development
+## Local Development
 
 ### Setup
 ```bash
-git clone <repository>
+git clone https://github.com/tomtom-international/tomtom-mcp.git
 
 cd tomtom-mcp
 
@@ -296,7 +286,7 @@ node ./bin/tomtom-mcp.js   # Start the MCP server
 npm run build               # Build TypeScript
 npm test                    # Run all tests
 npm run test:unit           # Unit tests only
-npm run test:comprehensive  # Integration tests
+npm run test:all            # All tests (unit + stdio + http)
 ```
 ---
 
@@ -306,12 +296,16 @@ npm run test:comprehensive  # Integration tests
 ### Project Structure
 ```
 src/
-├── tools/             # MCP tool definitions
-├── services/          # TomTom API wrappers
+├── apps/              # MCP App UI resources
+├── handlers/          # Request handlers
 ├── schemas/           # Validation schemas
+├── services/          # TomTom API wrappers
+├── tools/             # MCP tool definitions
+├── types/             # TypeScript type definitions
 ├── utils/             # Utilities
-└── createServer.ts    # MCP Server creation logic
-└── index.ts           # Main entry point
+├── createServer.ts    # MCP Server creation logic
+├── index.ts           # Main entry point (stdio)
+└── indexHttp.ts       # HTTP server entry point
 ```
 ---
 ## Troubleshooting
@@ -340,7 +334,7 @@ We welcome contributions to the TomTom MCP Server! Please see [CONTRIBUTING.md](
 
 All contributions must adhere to our [Code of Conduct](https://github.com/tomtom-international/.github/blob/main/CODE_OF_CONDUCT.md) and be signed-off according to the [Developer Certificate of Origin (DCO)](https://developercertificate.org/).
 
-Open issues on the [GitHub repo](https://github.com/tomtom-internal/tomtom-mcp/issues)
+Open issues on the [GitHub repo](https://github.com/tomtom-international/tomtom-mcp/issues)
 
 ## Security
 
