@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'main'
+  pull_request:
+    branches:
+      - 'main'
   release:
     types: [published]
 
@@ -30,7 +33,7 @@ jobs:
     needs: [pre-check]
     if: |
       always() &&
-      (github.event_name == 'release' || needs.pre-check.outputs.skip-workflow == 'false')
+      (github.event_name == 'release' || github.event_name == 'pull_request' || needs.pre-check.outputs.skip-workflow == 'false')
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +48,8 @@ jobs:
             platform: win32
             arch: x64
     runs-on: ${{ matrix.os }}
+    env:
+      NODE_OPTIONS: ${{ matrix.platform == 'darwin' && '--max-old-space-size=8192' || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
