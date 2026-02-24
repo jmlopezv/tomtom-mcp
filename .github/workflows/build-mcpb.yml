@@ -45,6 +45,8 @@ jobs:
             platform: win32
             arch: x64
     runs-on: ${{ matrix.os }}
+    env:
+      NODE_OPTIONS: ${{ matrix.platform == 'darwin' && '--max-old-space-size=8192' || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
