@@ -19,28 +19,32 @@
 
 import { logger } from "../utils/logger";
 import { searchInArea } from "../services/search/areaSearchSDKService";
+import type { AreaSearchParams } from "../services/search/areaSearchSDKService";
 import { buildCompressedResponse } from "./shared/responseTrimmer";
 import { generateCirclePoints } from "../services/map/geometryUtils";
+import type { SearchResponse } from "@tomtom-org/maps-sdk/services";
+import type { Feature, Polygon, Position } from "geojson";
 
 /**
  * Trim SDK GeoJSON search response for area search.
  * Removes verbose POI metadata, entry points, and redundant address fields.
  */
-function trimAreaSearchResponse(response: any): any {
+function trimAreaSearchResponse(response: SearchResponse): SearchResponse {
   if (!response?.features) return response;
 
   const trimmed = structuredClone(response);
 
-  trimmed.features = trimmed.features.map((feature: any) => {
-    const props = feature.properties || {};
+  trimmed.features = trimmed.features.map((feature) => {
+    const props = (feature.properties ?? {}) as Record<string, unknown>;
 
-    if (props.poi) {
-      delete props.poi.classifications;
-      delete props.poi.categorySet;
-      delete props.poi.timeZone;
-      delete props.poi.features;
-      delete props.poi.brands;
-      delete props.poi.openingHours;
+    const poi = props.poi as Record<string, unknown> | undefined;
+    if (poi) {
+      delete poi.classifications;
+      delete poi.categorySet;
+      delete poi.timeZone;
+      delete poi.features;
+      delete poi.brands;
+      delete poi.openingHours;
     }
 
     delete props.dataSources;
@@ -51,16 +55,17 @@ function trimAreaSearchResponse(response: any): any {
     delete props.boundingBox;
     delete props.entryPoints;
 
-    if (props.poi) {
-      delete props.poi.categoryIds;
+    if (poi) {
+      delete poi.categoryIds;
     }
 
-    if (props.address) {
-      delete props.address.countryCodeISO3;
-      delete props.address.countrySubdivisionCode;
-      delete props.address.countrySubdivisionName;
-      delete props.address.localName;
-      delete props.address.extendedPostalCode;
+    const address = props.address as Record<string, unknown> | undefined;
+    if (address) {
+      delete address.countryCodeISO3;
+      delete address.countrySubdivisionCode;
+      delete address.countrySubdivisionName;
+      delete address.localName;
+      delete address.extendedPostalCode;
     }
 
     return feature;
@@ -74,9 +79,10 @@ function trimAreaSearchResponse(response: any): any {
  * Converts circle/polygon/boundingBox input params into a Polygon feature
  * so the MCP app can draw the boundary on the map.
  */
-function buildSearchBoundaryFeature(searchParams: any): any | null {
+function buildSearchBoundaryFeature(searchParams: AreaSearchParams): Feature<Polygon> | null {
   if (searchParams.polygon && searchParams.polygon.length >= 3) {
-    const coordinates = searchParams.polygon.map((p: any) => [p.lon, p.lat]);
+    // polygon is Position[] = [lng, lat][]
+    const coordinates = searchParams.polygon.map((p: Position) => [p[0], p[1]]);
     const first = coordinates[0];
     const last = coordinates[coordinates.length - 1];
     if (first[0] !== last[0] || first[1] !== last[1]) {
@@ -90,12 +96,9 @@ function buildSearchBoundaryFeature(searchParams: any): any | null {
   }
 
   if (searchParams.center && searchParams.radius) {
-    const points = generateCirclePoints(
-      searchParams.center.lat,
-      searchParams.center.lon,
-      searchParams.radius,
-      64
-    );
+    // center is Position = [lng, lat]
+    const [centerLon, centerLat] = searchParams.center;
+    const points = generateCirclePoints(centerLat, centerLon, searchParams.radius, 64);
     const coordinates = points.map((p) => [p.lon, p.lat]);
     coordinates.push([...coordinates[0]]);
     return {
@@ -106,18 +109,19 @@ function buildSearchBoundaryFeature(searchParams: any): any | null {
   }
 
   if (searchParams.boundingBox) {
-    const { topLeft, bottomRight } = searchParams.boundingBox;
+    // boundingBox is [[topLeftLon, topLeftLat], [bottomRightLon, bottomRightLat]]
+    const [[tlLon, tlLat], [brLon, brLat]] = searchParams.boundingBox;
     return {
       type: "Feature",
       geometry: {
         type: "Polygon",
         coordinates: [
           [
-            [topLeft.lon, topLeft.lat],
-            [bottomRight.lon, topLeft.lat],
-            [bottomRight.lon, bottomRight.lat],
-            [topLeft.lon, bottomRight.lat],
-            [topLeft.lon, topLeft.lat],
+            [tlLon, tlLat],
+            [brLon, tlLat],
+            [brLon, brLat],
+            [tlLon, brLat],
+            [tlLon, tlLat],
           ],
         ],
       },
@@ -132,18 +136,20 @@ function buildSearchBoundaryFeature(searchParams: any): any | null {
  * Create handler for Geometry/Area Search tool.
  */
 export function createAreaSearchHandler() {
-  return async (params: any) => {
+  return async (params: Record<string, unknown>) => {
     logger.info("Area/geometry search");
     try {
       const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
-      const result = await searchInArea(searchParams);
+      const result = await searchInArea(searchParams as unknown as AreaSearchParams);
 
       logger.info({ resultCount: result?.features?.length || 0 }, "Area search completed");
 
       // Attach search boundary so the app can draw it on the map
-      const boundary = buildSearchBoundaryFeature(searchParams);
-      const resultWithBoundary = boundary ? { ...result, _searchBoundary: boundary } : result;
+      const boundary = buildSearchBoundaryFeature(searchParams as unknown as AreaSearchParams);
+      const resultWithBoundary: SearchResponse & { _searchBoundary?: Feature<Polygon> } = boundary
+        ? { ...result, _searchBoundary: boundary }
+        : result;
 
       // If full response requested, return without trimming
       if (response_detail === "full") {
@@ -155,11 +161,12 @@ export function createAreaSearchHandler() {
 
       // Trimmed for agent, full data cached for Apps
       const trimmed = trimAreaSearchResponse(result);
-      return await buildCompressedResponse(trimmed, resultWithBoundary, show_ui);
-    } catch (error: any) {
-      logger.error({ error: error.message }, "Area search failed");
+      return await buildCompressedResponse(trimmed, resultWithBoundary, show_ui as boolean);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error({ error: message }, "Area search failed");
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: error.message }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: message }) }],
         isError: true,
       };
     }

@@ -30,8 +30,8 @@ import {
  * Helper function to build route parameters from options
  * Centralizes parameter mapping logic to avoid duplication
  */
-function buildRouteParams(options?: RouteOptions): Record<string, any> {
-  const params: Record<string, any> = {
+function buildRouteParams(options?: RouteOptions): Record<string, unknown> {
+  const params: Record<string, unknown> = {
     computeTravelTimeFor: options?.computeTravelTimeFor || "all",
     routeType: options?.routeType || "fastest",
   };
@@ -227,8 +227,8 @@ export async function getMultiWaypointRoute(
 /**
  * Helper function to build reachable range parameters from options
  */
-function buildReachableRangeParams(options: ReachableRangeOptions): Record<string, any> {
-  const params: Record<string, any> = {};
+function buildReachableRangeParams(options: ReachableRangeOptions): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
 
   // Budget parameters (one is required)
   if (options.timeBudgetInSec !== undefined) params.timeBudgetInSec = options.timeBudgetInSec;

@@ -28,19 +28,13 @@ export const uiVisibilityParam = {
     ),
 };
 
-// Common coordinate schema for reuse
-export const coordinateSchema = z.object({
-  lat: z
-    .number()
-    .describe(
-      "Latitude coordinate (-90 to +90). Use precise coordinates from geocoding for best results."
-    ),
-  lon: z
-    .number()
-    .describe(
-      "Longitude coordinate (-180 to +180). Use precise coordinates from geocoding for best results."
-    ),
-});
+// Common coordinate schema for reuse — [longitude, latitude] (GeoJSON convention)
+export const coordinateSchema = z
+  .tuple([z.number(), z.number()])
+  .describe(
+    "Position as [longitude, latitude] (GeoJSON convention, lng first). " +
+      "Example: [4.89707, 52.377956] for Amsterdam, [13.404954, 52.520008] for Berlin."
+  );
 
 // Common routing options schema for reuse
 export const routingOptionsSchema = {

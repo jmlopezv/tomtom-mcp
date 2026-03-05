@@ -57,7 +57,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
     {
       title: "TomTom Geocode",
       description: "Convert street addresses to coordinates with interactive map UI",
-      inputSchema: schemas.tomtomGeocodeSearchSchema as any,
+      inputSchema: schemas.tomtomGeocodeSearchSchema,
       annotations: {
         title: "TomTom Geocode",
         readOnlyHint: true,
@@ -70,7 +70,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
         [RESOURCE_URI_META_KEY]: GEOCODE_RESOURCE_URI,
       },
     },
-    createGeocodeHandler() as any
+    createGeocodeHandler()
   );
 
   // Reverse geocode tool with UI
@@ -80,7 +80,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
     {
       title: "TomTom Reverse Geocode",
       description: "Convert coordinates to addresses with interactive map UI",
-      inputSchema: schemas.tomtomReverseGeocodeSearchSchema as any,
+      inputSchema: schemas.tomtomReverseGeocodeSearchSchema,
       annotations: {
         title: "TomTom Reverse Geocode",
         readOnlyHint: true,
@@ -93,7 +93,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
         [RESOURCE_URI_META_KEY]: REVERSE_GEOCODE_RESOURCE_URI,
       },
     },
-    createReverseGeocodeHandler() as any
+    createReverseGeocodeHandler()
   );
 
   // Fuzzy search tool with UI
@@ -104,7 +104,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
       title: "TomTom Fuzzy Search",
       description:
         "Typo-tolerant search for addresses, points of interest, and geographies with interactive map UI",
-      inputSchema: schemas.tomtomFuzzySearchSchema as any,
+      inputSchema: schemas.tomtomFuzzySearchSchema,
       annotations: {
         title: "TomTom Fuzzy Search",
         readOnlyHint: true,
@@ -117,7 +117,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
         [RESOURCE_URI_META_KEY]: FUZZY_SEARCH_RESOURCE_URI,
       },
     },
-    createFuzzySearchHandler() as any
+    createFuzzySearchHandler()
   );
 
   // POI search tool with UI
@@ -128,7 +128,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
       title: "TomTom POI Search",
       description:
         "Search for a specific business or POI by name, or browse an entire POI category. Best for finding a known place (e.g. 'Starbucks') or listing all businesses of a type (e.g. category 7315 for restaurants). Supports optional location bias but does NOT constrain results to a strict geographic boundary — use tomtom-area-search for that.",
-      inputSchema: schemas.tomtomPOISearchSchema as any,
+      inputSchema: schemas.tomtomPOISearchSchema,
       annotations: {
         title: "TomTom POI Search",
         readOnlyHint: true,
@@ -141,7 +141,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
         [RESOURCE_URI_META_KEY]: POI_SEARCH_RESOURCE_URI,
       },
     },
-    createPoiSearchHandler() as any
+    createPoiSearchHandler()
   );
 
   // Nearby search tool with UI
@@ -152,7 +152,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
       title: "TomTom Nearby Search",
       description:
         "Find places close to a specific point. Best for 'what's around here?' queries when you have exact coordinates (lat/lon). Returns results sorted by distance. Use tomtom-area-search instead when the search area is a polygon or bounding box rather than a simple radius.",
-      inputSchema: schemas.tomtomNearbySearchSchema as any,
+      inputSchema: schemas.tomtomNearbySearchSchema,
       annotations: {
         title: "TomTom Nearby Search",
         readOnlyHint: true,
@@ -165,6 +165,6 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
         [RESOURCE_URI_META_KEY]: NEARBY_SEARCH_RESOURCE_URI,
       },
     },
-    createNearbySearchHandler() as any
+    createNearbySearchHandler()
   );
 }

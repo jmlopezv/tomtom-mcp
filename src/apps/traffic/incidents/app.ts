@@ -77,7 +77,10 @@ async function initializeMap(): Promise<void> {
 // SDK incident event handlers
 // ---------------------------------------------------------------------------
 
-function showPopupForFeature(feature: any, lngLat: [number, number]): void {
+function showPopupForFeature(
+  feature: { properties?: Record<string, unknown> | null; geometry?: unknown },
+  lngLat: [number, number]
+): void {
   if (!map) return;
 
   if (activePopup) {
@@ -106,8 +109,8 @@ function showPopupForFeature(feature: any, lngLat: [number, number]): void {
 function setupIncidentEvents(): void {
   if (!trafficIncidentsModule || !map) return;
 
-  trafficIncidentsModule.events.on("click", (feature: any, lngLat: any) => {
-    showPopupForFeature(feature, lngLat);
+  trafficIncidentsModule.events.on("click", (feature, lngLat) => {
+    showPopupForFeature(feature, [lngLat.lng, lngLat.lat]);
   });
 
   trafficIncidentsModule.events.on("hover", () => {
@@ -131,8 +134,8 @@ function autoOpenFirstIncident(): void {
     // Find incident layers by source name (SDK uses "vectorTilesIncidents")
     const incidentLayers = gl
       .getStyle()
-      .layers.filter((l: any) => l.source === "vectorTilesIncidents")
-      .map((l: any) => l.id);
+      .layers.filter((l) => l.type !== "background" && l.source === "vectorTilesIncidents")
+      .map((l) => l.id);
 
     if (incidentLayers.length === 0) {
       // SDK layers not ready yet, retry
@@ -143,7 +146,7 @@ function autoOpenFirstIncident(): void {
     const features = gl.queryRenderedFeatures(undefined, { layers: incidentLayers });
 
     // Pick a random incident that has a description
-    const withDesc = features.filter((f: any) => f.properties?.description_0);
+    const withDesc = features.filter((f) => f.properties?.description_0);
     const feat =
       withDesc.length > 0 ? withDesc[Math.floor(Math.random() * withDesc.length)] : undefined;
     if (!feat) {
@@ -152,14 +155,16 @@ function autoOpenFirstIncident(): void {
     }
 
     autoPopupShown = true;
-    const geom = feat.geometry as any;
+    const geom = feat.geometry as { type: string; coordinates: number[] | number[][] };
     let lngLat: [number, number];
 
     if (geom.type === "Point") {
-      lngLat = [geom.coordinates[0], geom.coordinates[1]];
-    } else if (geom.type === "LineString" && geom.coordinates.length > 0) {
+      const coords = geom.coordinates as number[];
+      lngLat = [coords[0], coords[1]];
+    } else if (geom.type === "LineString" && (geom.coordinates as number[][]).length > 0) {
       // Use the midpoint of the line
-      const mid = geom.coordinates[Math.floor(geom.coordinates.length / 2)];
+      const coords = geom.coordinates as number[][];
+      const mid = coords[Math.floor(coords.length / 2)];
       lngLat = [mid[0], mid[1]];
     } else {
       return;

@@ -92,14 +92,6 @@ export const tomtomPOISearchSchema = {
     .describe(
       "Search radius in meters. Essential for focused local results. Examples: 1000 (walking), 5000 (driving), 20000 (wide area)."
     ),
-  lat: z
-    .number()
-    .optional()
-    .describe("Latitude for location context. STRONGLY recommended for relevant local results."),
-  lon: z
-    .number()
-    .optional()
-    .describe("Longitude for location context. Must be used with lat parameter."),
   typeahead: z
     .boolean()
     .optional()
@@ -129,12 +121,12 @@ export const tomtomPOISearchSchema = {
 };
 
 export const tomtomNearbySearchSchema = {
-  lat: z
-    .number()
-    .describe("Center latitude for nearby search. Use precise coordinates from geocoding."),
-  lon: z
-    .number()
-    .describe("Center longitude for nearby search. Use precise coordinates from geocoding."),
+  position: z
+    .tuple([z.number(), z.number()])
+    .describe(
+      "Center position as [longitude, latitude] for nearby search (GeoJSON convention). " +
+        "Example: [4.89707, 52.377956] for Amsterdam. Use precise coordinates from geocoding."
+    ),
   ...uiVisibilityParam,
   ...baseSearchParams,
   ...poiFilterParams,
@@ -185,12 +177,12 @@ export const tomtomGeocodeSearchSchema = {
 };
 
 export const tomtomReverseGeocodeSearchSchema = {
-  lat: z
-    .number()
-    .describe("Latitude coordinate (-90 to +90). Precision to 4+ decimal places recommended."),
-  lon: z
-    .number()
-    .describe("Longitude coordinate (-180 to +180). Precision to 4+ decimal places recommended."),
+  position: z
+    .tuple([z.number(), z.number()])
+    .describe(
+      "Position as [longitude, latitude] to reverse geocode (GeoJSON convention). " +
+        "Precision to 4+ decimal places recommended. Example: [4.89707, 52.377956]."
+    ),
   ...uiVisibilityParam,
   ...baseSearchParams,
   radius: z.number().optional().describe("Search radius in meters. Default: 100"),

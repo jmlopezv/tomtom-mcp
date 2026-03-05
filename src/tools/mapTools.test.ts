@@ -15,6 +15,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMapTools } from "./mapTools";
 
 // Mock server and dependencies
@@ -27,7 +28,7 @@ function makeMockServer() {
 describe("createMapTools", () => {
   it("should register the tomtom-static-map tool with the correct schema and handler", () => {
     const mockServer = makeMockServer();
-    createMapTools(mockServer as any);
+    createMapTools(mockServer as unknown as McpServer);
 
     expect(mockServer.registerTool).toHaveBeenCalledWith(
       "tomtom-static-map",
@@ -43,7 +44,7 @@ describe("createMapTools", () => {
 
   it("should register the tomtom-dynamic-map tool with the correct schema and handler", () => {
     const mockServer = makeMockServer();
-    createMapTools(mockServer as any);
+    createMapTools(mockServer as unknown as McpServer);
 
     expect(mockServer.registerTool).toHaveBeenCalledWith(
       "tomtom-dynamic-map",
@@ -58,7 +59,7 @@ describe("createMapTools", () => {
 
   it("should register both map tools", () => {
     const mockServer = makeMockServer();
-    createMapTools(mockServer as any);
+    createMapTools(mockServer as unknown as McpServer);
 
     expect(mockServer.registerTool).toHaveBeenCalledTimes(2);
   });

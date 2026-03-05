@@ -19,6 +19,7 @@
 
 import { logger } from "../utils/logger";
 import { searchAlongRoute } from "../services/search/searchAlongRouteSDKService";
+import type { SearchAlongRouteResult } from "../services/search/searchAlongRouteSDKService";
 import { buildCompressedResponse } from "./shared/responseTrimmer";
 
 /**
@@ -26,25 +27,21 @@ import { buildCompressedResponse } from "./shared/responseTrimmer";
  * Removes heavy route coordinates, speedLimit/guidance sections,
  * and verbose POI metadata.
  */
-function trimSearchAlongRouteResponse(response: any): any {
+function trimSearchAlongRouteResponse(response: SearchAlongRouteResult): SearchAlongRouteResult {
   const trimmed = structuredClone(response);
 
   // Trim route: remove heavy coordinate arrays and verbose sections
   if (trimmed.route?.features) {
-    trimmed.route.features = trimmed.route.features.map((feature: any) => {
-      if (feature.geometry?.coordinates) {
-        const coords = feature.geometry.coordinates;
+    trimmed.route.features = trimmed.route.features.map((feature) => {
+      const geom = feature.geometry as { coordinates?: unknown[] } | undefined;
+      if (geom?.coordinates) {
+        const coords = geom.coordinates;
         if (Array.isArray(coords) && coords.length > 2) {
-          feature.geometry = {
-            ...feature.geometry,
-            coordinates: [coords[0], coords[coords.length - 1]],
-            _trimmed: true,
-            _originalPointCount: coords.length,
-          };
+          geom.coordinates = [coords[0], coords[coords.length - 1]];
         }
       }
 
-      const props = feature.properties || {};
+      const props = (feature.properties ?? {}) as Record<string, unknown>;
 
       // Remove all sections — agent only needs route summary + POIs
       delete props.sections;
@@ -58,16 +55,17 @@ function trimSearchAlongRouteResponse(response: any): any {
 
   // Trim POIs: remove verbose metadata
   if (trimmed.pois?.features) {
-    trimmed.pois.features = trimmed.pois.features.map((feature: any) => {
-      const props = feature.properties || {};
+    trimmed.pois.features = trimmed.pois.features.map((feature) => {
+      const props = (feature.properties ?? {}) as Record<string, unknown>;
 
-      if (props.poi) {
-        delete props.poi.classifications;
-        delete props.poi.categorySet;
-        delete props.poi.timeZone;
-        delete props.poi.features;
-        delete props.poi.brands;
-        delete props.poi.openingHours;
+      const poi = props.poi as Record<string, unknown> | undefined;
+      if (poi) {
+        delete poi.classifications;
+        delete poi.categorySet;
+        delete poi.timeZone;
+        delete poi.features;
+        delete poi.brands;
+        delete poi.openingHours;
       }
 
       delete props.dataSources;
@@ -78,16 +76,17 @@ function trimSearchAlongRouteResponse(response: any): any {
       delete props.boundingBox;
       delete props.entryPoints;
 
-      if (props.poi) {
-        delete props.poi.categoryIds;
+      if (poi) {
+        delete poi.categoryIds;
       }
 
-      if (props.address) {
-        delete props.address.countryCodeISO3;
-        delete props.address.countrySubdivisionCode;
-        delete props.address.countrySubdivisionName;
-        delete props.address.localName;
-        delete props.address.extendedPostalCode;
+      const address = props.address as Record<string, unknown> | undefined;
+      if (address) {
+        delete address.countryCodeISO3;
+        delete address.countrySubdivisionCode;
+        delete address.countrySubdivisionName;
+        delete address.localName;
+        delete address.extendedPostalCode;
       }
 
       return feature;
@@ -101,12 +100,14 @@ function trimSearchAlongRouteResponse(response: any): any {
  * Create handler for Search Along Route tool.
  */
 export function createSearchAlongRouteHandler() {
-  return async (params: any) => {
+  return async (params: Record<string, unknown>) => {
     logger.info("Search along route");
     try {
       const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
-      const result = await searchAlongRoute(searchParams);
+      const result = await searchAlongRoute(
+        searchParams as unknown as Parameters<typeof searchAlongRoute>[0]
+      );
 
       logger.info(
         {
@@ -126,11 +127,12 @@ export function createSearchAlongRouteHandler() {
 
       // Trimmed for agent, full data cached for Apps
       const trimmed = trimSearchAlongRouteResponse(result);
-      return await buildCompressedResponse(trimmed, result, show_ui);
-    } catch (error: any) {
-      logger.error({ error: error.message }, "Search along route failed");
+      return await buildCompressedResponse(trimmed, result, show_ui as boolean);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error({ error: message }, "Search along route failed");
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: error.message }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: message }) }],
         isError: true,
       };
     }

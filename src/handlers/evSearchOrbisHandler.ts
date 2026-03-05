@@ -20,28 +20,40 @@
 import { logger } from "../utils/logger";
 import { searchEVStations } from "../services/search/evSearchSDKService";
 import { buildCompressedResponse } from "./shared/responseTrimmer";
+import type { Places } from "@tomtom-org/maps-sdk/core";
+
+interface ConnectorInfo {
+  connector?: {
+    type?: string;
+    ratedPowerKW?: number;
+    currentType?: string;
+    chargingSpeed?: string;
+  };
+  count?: number;
+}
 
 /**
  * Trim SDK GeoJSON search response for EV stations.
  * Removes verbose properties while keeping essential EV-specific data
  * (station name, address, connector types, power, availability).
  */
-function trimEVSearchResponse(response: any): any {
+function trimEVSearchResponse(response: Places): Places {
   if (!response?.features) return response;
 
   const trimmed = structuredClone(response);
 
-  trimmed.features = trimmed.features.map((feature: any) => {
-    const props = feature.properties || {};
+  trimmed.features = trimmed.features.map((feature) => {
+    const props = (feature.properties ?? {}) as Record<string, unknown>;
 
     // Trim POI details — keep name, phone, url
-    if (props.poi) {
-      delete props.poi.classifications;
-      delete props.poi.categorySet;
-      delete props.poi.timeZone;
-      delete props.poi.features;
-      delete props.poi.brands;
-      delete props.poi.openingHours;
+    const poi = props.poi as Record<string, unknown> | undefined;
+    if (poi) {
+      delete poi.classifications;
+      delete poi.categorySet;
+      delete poi.timeZone;
+      delete poi.features;
+      delete poi.brands;
+      delete poi.openingHours;
     }
 
     // Remove verbose metadata
@@ -54,28 +66,30 @@ function trimEVSearchResponse(response: any): any {
     delete props.entryPoints;
 
     // Trim address — keep freeformAddress, streetName, municipality, countryCode
-    if (props.address) {
-      delete props.address.countryCodeISO3;
-      delete props.address.countrySubdivisionCode;
-      delete props.address.countrySubdivisionName;
-      delete props.address.localName;
-      delete props.address.extendedPostalCode;
+    const address = props.address as Record<string, unknown> | undefined;
+    if (address) {
+      delete address.countryCodeISO3;
+      delete address.countrySubdivisionCode;
+      delete address.countrySubdivisionName;
+      delete address.localName;
+      delete address.extendedPostalCode;
     }
 
     // Simplify chargingPark connectors — keep type, power, speed, count
-    if (props.chargingPark?.connectors) {
-      props.chargingPark.connectors = props.chargingPark.connectors.map((c: any) => ({
+    const chargingPark = props.chargingPark as { connectors?: ConnectorInfo[] } | undefined;
+    if (chargingPark?.connectors) {
+      chargingPark.connectors = chargingPark.connectors.map((c: ConnectorInfo) => ({
         type: c.connector?.type,
         ratedPowerKW: c.connector?.ratedPowerKW,
         currentType: c.connector?.currentType,
         chargingSpeed: c.connector?.chargingSpeed,
         count: c.count,
-      }));
+      })) as ConnectorInfo[];
     }
 
     // Remove internal IDs from POI
-    if (props.poi) {
-      delete props.poi.categoryIds;
+    if (poi) {
+      delete poi.categoryIds;
     }
 
     return feature;
@@ -88,12 +102,14 @@ function trimEVSearchResponse(response: any): any {
  * Create handler for EV Charging Station Search tool.
  */
 export function createEVSearchHandler() {
-  return async (params: any) => {
+  return async (params: Record<string, unknown>) => {
     logger.info("EV charging station search");
     try {
       const { show_ui = true, response_detail = "compact", ...searchParams } = params;
 
-      const result = await searchEVStations(searchParams);
+      const result = await searchEVStations(
+        searchParams as unknown as Parameters<typeof searchEVStations>[0]
+      );
 
       logger.info(
         { stationCount: result?.features?.length || 0 },
@@ -110,11 +126,12 @@ export function createEVSearchHandler() {
 
       // Trimmed for agent, full data cached for Apps
       const trimmed = trimEVSearchResponse(result);
-      return await buildCompressedResponse(trimmed, result, show_ui);
-    } catch (error: any) {
-      logger.error({ error: error.message }, "EV charging station search failed");
+      return await buildCompressedResponse(trimmed, result, show_ui as boolean);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error({ error: message }, "EV charging station search failed");
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: error.message }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: message }) }],
         isError: true,
       };
     }

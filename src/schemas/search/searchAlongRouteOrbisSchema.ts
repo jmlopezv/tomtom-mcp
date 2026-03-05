@@ -22,19 +22,20 @@ import { z } from "zod";
 import { responseDetailSchema } from "../shared/responseOptions";
 import { uiVisibilityParam } from "../routing/commonOrbis";
 
-const coordinateSchema = z.object({
-  lat: z.number().describe("Latitude coordinate."),
-  lon: z.number().describe("Longitude coordinate."),
-});
-
 export const tomtomSearchAlongRouteSchema = {
-  origin: coordinateSchema.describe(
-    "Route starting point. Use precise coordinates from geocoding."
-  ),
+  origin: z
+    .tuple([z.number(), z.number()])
+    .describe(
+      "Route starting point as [longitude, latitude] (GeoJSON convention). " +
+        "Use precise coordinates from geocoding. Example: [4.89707, 52.377956]."
+    ),
 
-  destination: coordinateSchema.describe(
-    "Route ending point. Use precise coordinates from geocoding."
-  ),
+  destination: z
+    .tuple([z.number(), z.number()])
+    .describe(
+      "Route ending point as [longitude, latitude] (GeoJSON convention). " +
+        "Use precise coordinates from geocoding. Example: [13.404954, 52.520008]."
+    ),
 
   query: z
     .string()

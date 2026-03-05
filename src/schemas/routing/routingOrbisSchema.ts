@@ -24,32 +24,17 @@ import {
 } from "./commonOrbis";
 
 export const tomtomRoutingSchema = {
-  origin: coordinateSchema.describe(
-    "Starting point coordinates. Obtain from geocoding for best results."
-  ),
-  destination: coordinateSchema.describe(
-    "Destination coordinates. Obtain from geocoding for best results."
-  ),
-  ...uiVisibilityParam,
-  ...routingOptionsSchema,
-  ...vehicleSchema,
-  sectionType: sectionTypeSchema.describe(
-    "Highlight specific road section types in response for route analysis: toll (toll roads), motorway (highways), tunnel, urban (city areas), country (rural areas), pedestrian (walking paths), etc."
-  ),
-};
-
-export const tomtomWaypointRoutingSchema = {
-  waypoints: z
+  locations: z
     .array(coordinateSchema)
     .min(2)
     .describe(
-      "Ordered array of waypoint coordinates (minimum 2). Route calculated in exact sequence provided. Use geocoding for accurate coordinates."
+      "Ordered list of coordinates [origin, ...intermediateStops, destination]. Minimum 2 (origin + destination); add intermediate positions for multi-stop routes. Use geocoding for accurate coordinates."
     ),
   ...uiVisibilityParam,
   ...routingOptionsSchema,
   ...vehicleSchema,
   sectionType: sectionTypeSchema.describe(
-    "Road section types to highlight for route analysis. Options: toll (toll roads), motorway (highways), tunnel, urban (city areas), country (rural areas), pedestrian (walking paths), traffic (traffic incidents), toll_road, ferry, travel_mode, important_road_stretch. Accepts array of string(s)."
+    "Highlight specific road section types in response for route analysis: toll (toll roads), motorway (highways), tunnel, urban (city areas), country (rural areas), pedestrian (walking paths), etc."
   ),
 };
 
@@ -74,10 +59,14 @@ export const tomtomReachableRangeSchema = {
     .describe(
       "Maximum travel distance in meters. Examples: 5000 (5km), 10000 (10km), 20000 (20km). Either time or distance budget required."
     ),
-  energyBudgetInkWh: z
+  chargeBudgetPercent: z
     .number()
+    .min(0)
+    .max(100)
     .optional()
-    .describe("Maximum energy budget in kWh for electric vehicles. Example: 10 (10 kWh)."),
+    .describe(
+      "Battery percentage to spend for electric vehicles (0–100). Example: 80 means calculate area reachable using 80% of the battery."
+    ),
   fuelBudgetInLiters: z
     .number()
     .optional()

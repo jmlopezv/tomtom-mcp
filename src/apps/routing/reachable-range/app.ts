@@ -4,10 +4,10 @@
  */
 
 import { App } from "@modelcontextprotocol/ext-apps";
-import { bboxFromGeoJSON } from "@tomtom-org/maps-sdk/core";
-import { TomTomMap, PlacesModule } from "@tomtom-org/maps-sdk/map";
+import { bboxFromGeoJSON, type Place, type PolygonFeature } from "@tomtom-org/maps-sdk/core";
+import { TomTomMap, PlacesModule, GeometriesModule } from "@tomtom-org/maps-sdk/map";
+import type { ReachableRangeParams } from "@tomtom-org/maps-sdk/services";
 import { createMapControls } from "../../shared/map-controls";
-import { parseReachableRangeResponse } from "../../shared/sdk-parsers";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
 import { extractFullData } from "../../shared/decompress";
 import { ensureTomTomConfigured } from "../../shared/sdk-config";
@@ -16,12 +16,9 @@ import "./styles.css";
 // State tracking - map initialized lazily only when show_ui is true
 let map: TomTomMap | null = null;
 let placesModule: PlacesModule | null = null;
+let geometriesModule: GeometriesModule | null = null;
 let isReady = false;
-let pendingData: any = null;
-
-const rangeSourceId = "range-source";
-const rangeFillId = "range-fill";
-const rangeLineId = "range-line";
+let pendingData: PolygonFeature<ReachableRangeParams> | null = null;
 
 // App instance created early so we can reference it
 const app = new App({ name: "TomTom Reachable Range", version: "1.0.0" });
@@ -41,6 +38,10 @@ async function initializeMap() {
     theme: "pin",
   });
 
+  // Use GeometriesModule with inverted theme to highlight the reachable area
+  // by darkening everything outside the polygon boundary
+  geometriesModule = await GeometriesModule.get(map, { theme: "inverted" });
+
   // Add map controls for theme and traffic
   await createMapControls(map, {
     position: "top-right",
@@ -48,84 +49,59 @@ async function initializeMap() {
     showThemeToggle: true,
   });
 
-  // Handle map ready state
-  return new Promise<void>((resolve) => {
-    const setupLayers = () => {
-      map!.mapLibreMap.addSource(rangeSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      map!.mapLibreMap.addLayer({
-        id: rangeFillId,
-        type: "fill",
-        source: rangeSourceId,
-        paint: { "fill-color": "#4a90e2", "fill-opacity": 0.3 },
-      });
-      map!.mapLibreMap.addLayer({
-        id: rangeLineId,
-        type: "line",
-        source: rangeSourceId,
-        paint: { "line-color": "#4a90e2", "line-width": 2 },
-      });
-
-      isReady = true;
-      if (pendingData) {
-        processData(pendingData);
-        pendingData = null;
-      }
-      resolve();
-    };
-
-    if (map!.mapLibreMap.loaded()) {
-      setupLayers();
-    } else {
-      map!.mapLibreMap.on("load", setupLayers);
-    }
-  });
+  isReady = true;
+  if (pendingData) {
+    processData(pendingData);
+    pendingData = null;
+  }
 }
 
-function processData(apiResponse: any) {
-  if (!map) return;
+function processData(rangeFeature: PolygonFeature<ReachableRangeParams>) {
+  if (!map || !geometriesModule) return;
 
-  // Use SDK's built-in parser for correct format
-  // parseReachableRangeResponse returns a single PolygonFeature, not a FeatureCollection
-  const rangeFeature = parseReachableRangeResponse(apiResponse) as any;
-
-  if (!rangeFeature) {
-    clear();
+  // SDK calculateReachableRange returns a GeoJSON PolygonFeature directly
+  if (!rangeFeature?.geometry) {
+    void clear();
     return;
   }
 
   const geometry = rangeFeature.geometry;
 
-  // Handle polygon geometry from SDK parser
+  // Handle polygon geometry from SDK
   if (geometry?.type === "Polygon") {
-    const src = map.mapLibreMap.getSource(rangeSourceId) as any;
-    if (src) src.setData(rangeFeature);
+    void geometriesModule.show({
+      type: "FeatureCollection" as const,
+      features: [rangeFeature],
+    } as Parameters<typeof geometriesModule.show>[0]);
 
-    // Show center marker if available in properties
-    const center = rangeFeature.properties?.center;
-    if (placesModule && center) {
-      placesModule.show([
+    // Show center marker — SDK stores origin in properties.origin (HasLngLat)
+    const origin = (rangeFeature.properties as Record<string, unknown>)?.origin;
+    if (placesModule && origin) {
+      // HasLngLat can be [lng, lat] array or { lon, lat } object
+      const originVal = origin as [number, number] | { lon?: number; lng?: number; lat: number };
+      const coords: [number, number] = Array.isArray(originVal)
+        ? [originVal[0], originVal[1]]
+        : [(originVal.lon ?? originVal.lng) as number, originVal.lat];
+      void placesModule.show([
         {
           type: "Feature",
-          geometry: { type: "Point", coordinates: [center.longitude, center.latitude] },
+          geometry: { type: "Point", coordinates: coords },
           properties: {},
-        } as any,
+        } as unknown as Place,
       ]);
     }
 
     // Fit bounds using SDK utility
     const bbox = bboxFromGeoJSON(rangeFeature);
     if (bbox) {
-      map.mapLibreMap.fitBounds(bbox as [number, number, number, number], {
+      map.mapLibreMap.fitBounds(bbox, {
         padding: 50,
       });
     }
   }
 }
 
-async function displayRange(apiResponse: any) {
+async function displayRange(apiResponse: PolygonFeature<ReachableRangeParams>) {
   if (!isReady) {
     pendingData = apiResponse;
     return;
@@ -135,8 +111,7 @@ async function displayRange(apiResponse: any) {
 
 async function clear() {
   if (!map) return;
-  const src = map.mapLibreMap.getSource(rangeSourceId) as any;
-  if (src) src.setData({ type: "FeatureCollection", features: [] });
+  if (geometriesModule) await geometriesModule.clear();
   if (placesModule) await placesModule.clear();
 }
 
@@ -147,7 +122,7 @@ app.ontoolresult = async (r) => {
   }
   try {
     if (r.content[0].type === "text") {
-      const apiResponse = JSON.parse(r.content[0].text);
+      const apiResponse = JSON.parse(r.content[0].text) as unknown;
       if (!shouldShowUI(apiResponse)) {
         hideMapUI();
         return;
@@ -156,7 +131,9 @@ app.ontoolresult = async (r) => {
       showMapUI();
       await initializeMap();
       // Fetch full data from cache using viz_id
-      displayRange(await extractFullData(app, apiResponse));
+      void displayRange(
+        (await extractFullData(app, apiResponse)) as PolygonFeature<ReachableRangeParams>
+      );
     }
   } catch (e) {
     console.error(e);

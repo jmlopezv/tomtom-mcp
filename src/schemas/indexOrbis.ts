@@ -25,11 +25,7 @@ import { tomtomEvSearchSchema } from "./search/evSearchOrbisSchema";
 import { tomtomEvRoutingSchema } from "./routing/evRoutingOrbisSchema";
 import { tomtomSearchAlongRouteSchema } from "./search/searchAlongRouteOrbisSchema";
 import { tomtomAreaSearchSchema } from "./search/areaSearchOrbisSchema";
-import {
-  tomtomRoutingSchema,
-  tomtomWaypointRoutingSchema,
-  tomtomReachableRangeSchema,
-} from "./routing/routingOrbisSchema";
+import { tomtomRoutingSchema, tomtomReachableRangeSchema } from "./routing/routingOrbisSchema";
 import { tomtomMapSchema } from "./map/mapSchema";
 import { tomtomDynamicMapSchema } from "./map/dynamicMapSchema";
 import { tomtomTrafficSchema } from "./traffic/trafficOrbisSchema";
@@ -42,7 +38,6 @@ export const schemas = {
   tomtomGeocodeSearchSchema,
   tomtomReverseGeocodeSearchSchema,
   tomtomRoutingSchema,
-  tomtomWaypointRoutingSchema,
   tomtomReachableRangeSchema,
   tomtomMapSchema,
   tomtomDynamicMapSchema,
