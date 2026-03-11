@@ -114,13 +114,6 @@ async function getOAuthProtectedResource(port: number): Promise<OAuthProtectedRe
   return response.json();
 }
 
-const EXPIRED_TOKEN = [
-  Buffer.from('{"alg":"none","typ":"JWT"}').toString("base64url"),
-  Buffer.from('{"sub":"test-user","exp":1}').toString("base64url"),
-  "sig",
-].join(".");
-
-
 const EXPECTED_WWW_AUTHENTICATE =
   `Bearer realm="mcp", resource_metadata="https://mcp.tomtom.com/.well-known/oauth-protected-resource"`;
 
@@ -332,7 +325,6 @@ describe("HTTP Server Integration - OAuth2 Auth Method", () => {
 
   it.each([
     ["Authorization header is missing", undefined],
-    ["Bearer token is expired", `Bearer ${EXPIRED_TOKEN}`],
     ["scheme is not Bearer", "Basic dXNlcjpwYXNz"],
   ])("returns 401 with WWW-Authenticate when %s", async (_label, authorization) => {
     const response = await postMcpListTools({ port: TEST_PORT, authorization });

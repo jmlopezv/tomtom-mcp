@@ -25,6 +25,8 @@ import { Server } from "http";
 import { runWithSessionContext, setHttpMode } from "./services/base/tomtomClient";
 import { readVersion } from "./utils/readVersion";
 import { registerErrorHandlers } from "./utils/uncaughtErrorHandlers";
+import { ForbiddenError } from "./types/types";
+import jwt from "jsonwebtoken";
 
 registerErrorHandlers();
 
@@ -83,19 +85,16 @@ export function extractBearerToken(req: Request): string | null {
   return token || null;
 }
 
-/**
- * Returns true if the JWT token's exp claim is in the past.
- * Returns false for non-JWT tokens or tokens without an exp claim.
- */
-export function isTokenExpired(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-    return typeof payload.exp === "number" && payload.exp * 1000 < Date.now();
-  } catch {
-    return false;
+export function verifyBearerToken(token: string | null): jwt.JwtPayload {
+  if (!token) {
+    throw new ForbiddenError("");
   }
+  // TODO(LSI-120): Implement actual token verification.
+  const decoded = jwt.decode(token);
+  if (!decoded || typeof decoded === "string") {
+    throw new ForbiddenError("");
+  }
+  return decoded;
 }
 
 /**
@@ -183,10 +182,14 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       const apiKey = req.header("tomtom-api-key");
 
       if (authMethod === "oauth2") {
-        const bearerToken = extractBearerToken(req);
-        if (!bearerToken || isTokenExpired(bearerToken)) {
-          setUnauthorizedInvalidBearerToken(res, req.body?.id);
-          return;
+        try {
+          verifyBearerToken(extractBearerToken(req));
+        } catch (error) {
+          if (error instanceof ForbiddenError) {
+            setUnauthorizedInvalidBearerToken(res, req.body?.id);
+            return;
+          }
+          throw error;
         }
       } else {
         if (!apiKey?.trim()) {
