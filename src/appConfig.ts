@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-import { IncorrectError } from "./types/types";
-
-function getAuthMethod(value: string | undefined): "oauth2" | "api-key" {
-  const authMethodMap: Record<string, "oauth2" | "api-key"> = {
-    oauth2: "oauth2",
-    "api-key": "api-key",
-    "tomtom-api-key": "api-key",
-    "": "api-key",
-  };
-  const authMethod = authMethodMap[value ?? ""];
-  if (authMethod === undefined) {
-    throw new IncorrectError("Unrecognised AUTH_METHOD", { AUTH_METHOD: value });
-  }
-  return authMethod;
-}
-
 export function getAppConfig(env: NodeJS.ProcessEnv = process.env) {
 
   return {
@@ -41,9 +25,6 @@ export function getAppConfig(env: NodeJS.ProcessEnv = process.env) {
 
     /** Log level */
     logLevel: env.LOG_LEVEL || "info",
-
-    /** Authentication method */
-    authMethod: getAuthMethod(env.AUTH_METHOD),
   };
 }
 

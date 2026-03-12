@@ -267,40 +267,7 @@ describe("HTTP Server Integration - Fixed Backend Mode (TomTom Maps)", () => {
   });
 });
 
-describe("HTTP Server Integration - API Key Auth Method", () => {
-  let serverResult: HttpServerResult;
-  const TEST_PORT = 3994;
-
-  beforeAll(async () => {
-    serverResult = await createHttpServer({
-      port: TEST_PORT,
-      fixedBackend: null,
-      defaultBackend: "tomtom-maps",
-      authMethod: "api-key",
-    });
-  });
-
-  beforeEach(async () => {
-    await delay(100);
-  });
-
-  it("returns 401 when tomtom-api-key header is missing", async () => {
-    const response = await postMcpListTools({ port: TEST_PORT, apiKey: null });
-    expect(response.status).toBe(401);
-  });
-
-  it("accepts a valid api key", async () => {
-    const response = await postMcpListTools({ port: TEST_PORT, apiKey: TEST_API_KEY });
-    expect(response.ok).toBe(true);
-  });
-
-  afterAll(async () => {
-    await delay(50);
-    await serverResult.shutdown();
-  });
-});
-
-describe("HTTP Server Integration - OAuth2 Auth Method", () => {
+describe("HTTP Server Integration - Authentication", () => {
   let serverResult: HttpServerResult;
   const TEST_PORT = 3995;
 
@@ -308,8 +275,7 @@ describe("HTTP Server Integration - OAuth2 Auth Method", () => {
     serverResult = await createHttpServer({
       port: TEST_PORT,
       fixedBackend: null,
-      defaultBackend: "tomtom-maps",
-      authMethod: "oauth2",
+      defaultBackend: "tomtom-maps"
     });
   });
 
@@ -330,8 +296,18 @@ describe("HTTP Server Integration - OAuth2 Auth Method", () => {
     expect(response.status).toBe(401);
   });
 
+  it("malformed Bearer token returns 401", async () => {
+    const response = await postMcpListTools({ port: TEST_PORT, authorization: "Bearer not-a-jwt", apiKey: null });
+    expect(response.status).toBe(401);
+  });
+
   it("accepts a valid non-expired Bearer token", async () => {
     const response = await postMcpListTools({ port: TEST_PORT, authorization: `Bearer ${NON_EXPIRED_BEARER_TOKEN}` });
+    expect(response.ok).toBe(true);
+  });
+
+  it("accepts a valid api key", async () => {
+    const response = await postMcpListTools({ port: TEST_PORT, apiKey: TEST_API_KEY });
     expect(response.ok).toBe(true);
   });
 

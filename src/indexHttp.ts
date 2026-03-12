@@ -33,8 +33,7 @@ import { Server } from "http";
 import { runWithSessionContext, setHttpMode } from "./services/base/tomtomClient";
 import { readVersion } from "./utils/readVersion";
 import { registerErrorHandlers } from "./utils/uncaughtErrorHandlers";
-import { ForbiddenError } from "./types/types";
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
 
 registerErrorHandlers();
 
@@ -45,7 +44,6 @@ export interface HttpServerOptions {
   fixedBackend?: Backend | null;
   defaultBackend?: Backend;
   allowedOrigins?: string;
-  authMethod?: "oauth2" | "api-key";
 }
 
 export interface HttpServerResult {
@@ -54,31 +52,15 @@ export interface HttpServerResult {
   shutdown: () => Promise<void>;
 }
 
-// Per JSON-RPC 2.0 spec, request `id` may be a string, number, or null.
-// MCP narrows this: `id` must be a string or number (null is not allowed).
-type JsonRpcId = string | number;
-
 /**
- * Sends a 401 Unauthorized response with a WWW-Authenticate Bearer challenge.
+ * Returns null if token is absent/malformed.
  */
-export function setUnauthorizedInvalidBearerToken(res: Response, id: JsonRpcId): void {
-  res.status(401).json({
-    jsonrpc: "2.0",
-    error: { code: -32001, message: "Unauthorized" },
-    id,
-  });
-}
-
-export function setUnauthorizedInvalidApiKey(res: Response, id: JsonRpcId): void {
-  res.status(401).json({
-    jsonrpc: "2.0",
-    error: { code: -32001, message: "Missing or invalid tomtom-api-key header" },
-    id: id ?? null,
-  });
+function extractApiKey(req: Request): string | null {
+  return req.header("tomtom-api-key")?.trim();
 }
 
 /**
- * Extracts the Bearer token from the Authorization header, or null if absent/malformed.
+ * Returns null if token is absent/malformed.
  */
 export function extractBearerToken(req: Request): string | null {
   const auth = req.header("Authorization");
@@ -87,16 +69,23 @@ export function extractBearerToken(req: Request): string | null {
   return token || null;
 }
 
-export function verifyBearerToken(token: string | null): jwt.JwtPayload {
-  if (!token) {
-    throw new ForbiddenError("");
+export function verifyBearerToken(token: string | null): boolean {
+  if (token == null) {
+    return false;
   }
-  // TODO(LSI-120): Implement actual token verification.
-  const decoded = jwt.decode(token);
-  if (!decoded || typeof decoded === "string") {
-    throw new ForbiddenError("");
+  try {
+    // TODO(LSI-120): Verify instead of just decoding.
+    const decoded = jwt.decode(token);
+    if (decoded == null || typeof decoded === "string") {
+      return false;
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof JsonWebTokenError) {
+      return false;
+    }
+    throw error;
   }
-  return decoded;
 }
 
 /**
@@ -136,7 +125,6 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     fixedBackend = resolveFixedBackend(process.env.MAPS),
     defaultBackend = "tomtom-maps",
     allowedOrigins = appConfig.allowedOrigins,
-    authMethod = appConfig.authMethod,
   } = options;
 
   const app = express();
@@ -179,25 +167,11 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
 
   app.post(`/${ENDPOINT_MCP}`, async (req: Request, res: Response) => {
     const requestId = randomUUID();
-
+    const apiKey = extractApiKey(req);
     try {
-      const apiKey = req.header("tomtom-api-key");
-
-      if (authMethod === "oauth2") {
-        try {
-          verifyBearerToken(extractBearerToken(req));
-        } catch (error) {
-          if (error instanceof ForbiddenError) {
-            setUnauthorizedInvalidBearerToken(res, req.body?.id);
-            return;
-          }
-          throw error;
-        }
-      } else {
-        if (!apiKey?.trim()) {
-          setUnauthorizedInvalidApiKey(res, req.body?.id);
-          return;
-        }
+      if (!verifyBearerToken(extractBearerToken(req)) && apiKey == null) {
+        res.status(401).end();
+        return;
       }
 
       const backend = getBackend(req);
@@ -221,7 +195,7 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
         server.close();
       });
 
-      // TODO(LSI-125): Exchange bearer token for API key if authMethod is oauth2.
+      // TODO(LSI-125): Exchange bearer token for API key.
       await runWithSessionContext(apiKey ?? "", backend, async () => {
         await transport.handleRequest(req, res, req.body);
       });
