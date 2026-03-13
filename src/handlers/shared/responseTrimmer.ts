@@ -143,6 +143,70 @@ function deepClone<T>(obj: T): T {
   return structuredClone(obj);
 }
 
+// ============================================================================
+// Shared GeoJSON Feature Trimming (Orbis SDK responses)
+// ============================================================================
+
+/**
+ * Trim verbose properties from a GeoJSON Feature's properties object.
+ * Used by all Orbis search-related tools (geocode, fuzzy, POI, nearby, area, EV, along-route).
+ *
+ * Removes:
+ *   - POI: classifications, categorySet, categoryIds, timeZone, features, brands, openingHours
+ *   - Metadata: dataSources, matchConfidence, info, score, viewport, boundingBox, entryPoints
+ *   - Address: countryCodeISO3, countrySubdivisionCode, countrySubdivisionName, localName, extendedPostalCode
+ *   - Other: mapcodes, addressRanges, relatedPois
+ *
+ * Keeps:
+ *   - POI: name, phone, url, categories
+ *   - Address: freeformAddress, streetName, streetNumber, municipality, postalCode, countryCode, country, countrySubdivision
+ *   - Core: type, distance, chargingPark, geometry
+ */
+export function trimGeoJSONFeatureProperties(props: Record<string, unknown>): void {
+  // Trim POI verbose fields
+  const poi = props.poi as Record<string, unknown> | undefined;
+  if (poi) {
+    delete poi.classifications;
+    delete poi.categorySet;
+    delete poi.categoryIds;
+    delete poi.timeZone;
+    delete poi.features;
+    delete poi.brands;
+    delete poi.openingHours;
+  }
+
+  // Remove metadata fields (not useful for agent reasoning)
+  delete props.dataSources;
+  delete props.matchConfidence;
+  delete props.info;
+  delete props.score;
+  delete props.viewport;
+  delete props.boundingBox;
+  delete props.entryPoints;
+  delete props.mapcodes;
+  delete props.addressRanges;
+  delete props.relatedPois;
+
+  // Trim redundant address fields
+  const address = props.address as Record<string, unknown> | undefined;
+  if (address) {
+    delete address.countryCodeISO3;
+    delete address.countrySubdivisionCode;
+    delete address.countrySubdivisionName;
+    delete address.localName;
+    delete address.extendedPostalCode;
+  }
+}
+
+/**
+ * Trim FeatureCollection-level metadata (Orbis SDK search responses).
+ * Removes query timing and internal metadata, keeps result counts.
+ */
+function trimFeatureCollectionMetadata(resp: Record<string, unknown>): void {
+  delete resp.queryTime;
+  delete resp.geoBias;
+}
+
 /**
  * Trim routing response - removes large coordinate arrays and guidance instructions.
  *
@@ -171,14 +235,20 @@ export function trimRoutingResponse(response: unknown, _backend?: Backend): unkn
       if (geom) {
         delete geom.coordinates;
       }
-      // Remove guidance (turn-by-turn instructions)
+      // Remove feature-level bbox (map display bounds)
+      delete feature.bbox;
+
+      // Remove guidance (turn-by-turn instructions) and other verbose fields
       const props = feature.properties as Record<string, unknown> | undefined;
       if (props) {
         delete props.guidance;
+        delete props.progress;
         // Remove per-section geometry coordinates if present
-        (props.sections as Array<Record<string, unknown>> | undefined)?.forEach((section) => {
-          delete section.geometry;
-        });
+        if (Array.isArray(props.sections)) {
+          (props.sections as Array<Record<string, unknown>>).forEach((section) => {
+            delete section.geometry;
+          });
+        }
       }
     });
     return trimmed;
@@ -233,9 +303,31 @@ export function trimSearchResponse(response: unknown, backend?: Backend): unknow
   const resp = response as Record<string, unknown>;
 
   // SDK format: GeoJSON FeatureCollection with features[] (orbis backend)
-  // The SDK already returns a clean response — nothing significant to trim
   if (Array.isArray(resp?.features)) {
-    return deepClone(resp);
+    const trimmed = deepClone(resp);
+
+    // Trim FeatureCollection-level metadata
+    trimFeatureCollectionMetadata(trimmed);
+
+    // Trim each feature's properties
+    (trimmed.features as Array<Record<string, unknown>>).forEach((feature) => {
+      const props = feature.properties as Record<string, unknown> | undefined;
+      if (props) {
+        trimGeoJSONFeatureProperties(props);
+      }
+    });
+
+    return trimmed;
+  }
+
+  // SDK format: single GeoJSON Feature (reverse geocode)
+  if (resp?.type === "Feature" && resp?.properties) {
+    const trimmed = deepClone(resp);
+    const props = trimmed.properties as Record<string, unknown>;
+    if (props) {
+      trimGeoJSONFeatureProperties(props);
+    }
+    return trimmed;
   }
 
   // Legacy REST format: { summary, results[], addresses[] }

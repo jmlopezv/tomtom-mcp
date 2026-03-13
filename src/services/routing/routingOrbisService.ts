@@ -19,20 +19,17 @@
 
 import {
   calculateRoute,
-  calculateReachableRange,
-  type ReachableRangeParams,
-  type CostModel,
   type MaxNumberOfAlternatives,
-  type ReachableRangeBudget,
   type RouteType,
   type TrafficInput,
 } from "@tomtom-org/maps-sdk/services";
-import { Routes, Avoidable, TravelMode, PolygonFeature, Language } from "@tomtom-org/maps-sdk/core";
+import { type Routes, type Avoidable, type TravelMode, type Language } from "@tomtom-org/maps-sdk/core";
 import type { Position } from "geojson";
-import { getEffectiveApiKey } from "../base/tomtomClient";
+import { tomtomClient, validateApiKey, getEffectiveApiKey, ORBIS_API_VERSION } from "../base/tomtomClient";
+import { handleApiError } from "../../utils/apiErrorHandler";
 import { logger } from "../../utils/logger";
 import { IncorrectError } from "../../types/types";
-import type { ReachableRangeOptionsOrbis } from "./types";
+import type { ReachableRangeOptionsOrbis, ReachableRangeResult } from "./types";
 
 interface RouteOptions {
   routeType?: RouteType;
@@ -114,82 +111,116 @@ export async function getRoute(locations: Position[], options?: RouteOptions): P
 }
 
 /**
- * Map legacy flat budget parameters to SDK ReachableRangeBudget format.
- * SDK supports a single budget of one type.
- * Priority: time > distance > fuel > charge
+ * Helper function to build reachable range parameters from options
  */
-function buildSdkBudget(options: ReachableRangeOptionsOrbis): ReachableRangeBudget {
-  if (options.timeBudgetInSec !== undefined) {
-    return { type: "timeMinutes", value: options.timeBudgetInSec / 60 };
+function buildReachableRangeParams(options: ReachableRangeOptionsOrbis): Record<string, unknown> {
+  const params: Record<string, unknown> = {
+    apiVersion: ORBIS_API_VERSION.ROUTING,
+  };
+
+  // Budget parameters (one required)
+  if (options.timeBudgetInSec !== undefined) params.timeBudgetInSec = options.timeBudgetInSec;
+  if (options.distanceBudgetInMeters !== undefined)
+    params.distanceBudgetInMeters = options.distanceBudgetInMeters;
+  if (options.fuelBudgetInLiters !== undefined)
+    params.fuelBudgetInLiters = options.fuelBudgetInLiters;
+
+  // Basic routing options
+  if (options.routeType) params.routeType = options.routeType;
+  if (options.travelMode) params.travelMode = options.travelMode;
+  if (options.traffic) params.traffic = options.traffic;
+  if (options.avoid) params.avoid = options.avoid;
+  if (options.departAt) params.departAt = options.departAt;
+
+  // Vehicle specifications
+  if (options.vehicleMaxSpeed) params.vehicleMaxSpeed = options.vehicleMaxSpeed;
+  if (options.vehicleWeight) params.vehicleWeight = options.vehicleWeight;
+  if (options.vehicleEngineType) params.vehicleEngineType = options.vehicleEngineType;
+
+  // Electric vehicle options
+  if (options.constantSpeedConsumptionInkWhPerHundredkm) {
+    params.constantSpeedConsumptionInkWhPerHundredkm =
+      options.constantSpeedConsumptionInkWhPerHundredkm;
   }
-  if (options.distanceBudgetInMeters !== undefined) {
-    return { type: "distanceKM", value: options.distanceBudgetInMeters / 1000 };
+  if (options.currentChargeInkWh !== undefined)
+    params.currentChargeInkWh = options.currentChargeInkWh;
+  if (options.maxChargeInkWh !== undefined) params.maxChargeInkWh = options.maxChargeInkWh;
+  if (options.auxiliaryPowerInkW !== undefined)
+    params.auxiliaryPowerInkW = options.auxiliaryPowerInkW;
+
+  // Combustion vehicle options
+  if (options.constantSpeedConsumptionInLitersPerHundredkm) {
+    params.constantSpeedConsumptionInLitersPerHundredkm =
+      options.constantSpeedConsumptionInLitersPerHundredkm;
   }
-  if (options.fuelBudgetInLiters !== undefined) {
-    return { type: "spentFuelLiters", value: options.fuelBudgetInLiters };
-  }
-  if (options.chargeBudgetPercent !== undefined) {
-    return { type: "spentChargePCT", value: options.chargeBudgetPercent };
-  }
-  throw new IncorrectError(
-    "At least one budget parameter (time, distance, fuel, or charge) must be provided",
-    { provided_options: Object.keys(options) }
-  );
+  if (options.currentFuelInLiters !== undefined)
+    params.currentFuelInLiters = options.currentFuelInLiters;
+  if (options.auxiliaryPowerInLitersPerHour !== undefined)
+    params.auxiliaryPowerInLitersPerHour = options.auxiliaryPowerInLitersPerHour;
+  if (options.fuelEnergyDensityInMJoulesPerLiter !== undefined)
+    params.fuelEnergyDensityInMJoulesPerLiter = options.fuelEnergyDensityInMJoulesPerLiter;
+
+  // Efficiency parameters
+  if (options.accelerationEfficiency !== undefined)
+    params.accelerationEfficiency = options.accelerationEfficiency;
+  if (options.decelerationEfficiency !== undefined)
+    params.decelerationEfficiency = options.decelerationEfficiency;
+  if (options.uphillEfficiency !== undefined) params.uphillEfficiency = options.uphillEfficiency;
+  if (options.downhillEfficiency !== undefined)
+    params.downhillEfficiency = options.downhillEfficiency;
+  if (options.consumptionInkWhPerkmAltitudeGain !== undefined)
+    params.consumptionInkWhPerkmAltitudeGain = options.consumptionInkWhPerkmAltitudeGain;
+  if (options.recuperationInkWhPerkmAltitudeLoss !== undefined)
+    params.recuperationInkWhPerkmAltitudeLoss = options.recuperationInkWhPerkmAltitudeLoss;
+
+  // Other options
+  if (options.report !== undefined) params.report = options.report;
+  if (options.hilliness) params.hilliness = options.hilliness;
+  if (options.windingness) params.windingness = options.windingness;
+
+  return params;
 }
 
 /**
- * Calculate reachable range from a starting point using SDK.
- * Returns a GeoJSON PolygonFeature (SDK format).
+ * Calculate reachable range from a starting point.
+ * Uses direct HTTP call — SDK v0.46.0 does not export calculateReachableRanges yet.
  * @param origin [longitude, latitude] (GeoJSON convention)
  */
 export async function getReachableRange(
   origin: Position,
   options: ReachableRangeOptionsOrbis
-): Promise<PolygonFeature<ReachableRangeParams>> {
-  if (
-    options.timeBudgetInSec === undefined &&
-    options.distanceBudgetInMeters === undefined &&
-    options.chargeBudgetPercent === undefined &&
-    options.fuelBudgetInLiters === undefined
-  ) {
-    throw new IncorrectError(
-      "At least one budget parameter (time, distance, fuel, or charge) must be provided",
-      { provided_options: Object.keys(options) }
+): Promise<ReachableRangeResult> {
+  try {
+    validateApiKey();
+
+    if (
+      options.timeBudgetInSec === undefined &&
+      options.distanceBudgetInMeters === undefined &&
+      options.chargeBudgetPercent === undefined &&
+      options.fuelBudgetInLiters === undefined
+    ) {
+      throw new IncorrectError(
+        "At least one budget parameter (time, distance, fuel, or charge) must be provided",
+        { provided_options: Object.keys(options) }
+      );
+    }
+
+    logger.debug(
+      { origin: { lng: origin[0], lat: origin[1] } },
+      "Calculating reachable range"
     );
-  }
 
-  const apiKey = getEffectiveApiKey();
-  if (!apiKey) throw new Error("API key not available");
+    // Format origin as lat,lon for the API URL path
+    const originCoords = `${origin[1]},${origin[0]}`;
+    const params = buildReachableRangeParams(options);
 
-  logger.debug(
-    { origin: { lng: origin[0], lat: origin[1] } },
-    "Calculating reachable range via SDK"
-  );
-
-  const budget = buildSdkBudget(options);
-
-  const rangeParams: ReachableRangeParams = {
-    apiKey,
-    origin,
-    budget,
-  };
-
-  // Cost model (routeType, traffic, avoid)
-  const costModel: CostModel = {};
-  if (options.routeType) costModel.routeType = options.routeType;
-  if (options.traffic) costModel.traffic = options.traffic;
-  if (options.avoid) {
-    costModel.avoid = (
-      Array.isArray(options.avoid) ? options.avoid : [options.avoid]
+    const response = await tomtomClient.get(
+      `/maps/orbis/routing/calculateReachableRange/${originCoords}/json`,
+      { params }
     );
+
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
   }
-  if (Object.keys(costModel).length > 0) rangeParams.costModel = costModel;
-
-  if (options.travelMode) rangeParams.travelMode = options.travelMode;
-
-  if (options.departAt) {
-    rangeParams.when = { option: "departAt", date: new Date(options.departAt) };
-  }
-
-  return calculateReachableRange(rangeParams);
 }

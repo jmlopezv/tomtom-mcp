@@ -130,7 +130,10 @@ export async function poiSearch(
 /**
  * Geocodes an address to coordinates
  */
-export async function geocodeAddress(query: string, options?: BaseSearchOptions): Promise<GeocodingResponse> {
+export async function geocodeAddress(
+  query: string,
+  options?: BaseSearchOptions
+): Promise<GeocodingResponse> {
   const apiKey = getEffectiveApiKey();
   if (!apiKey) throw new Error("API key not available");
 
@@ -192,6 +195,7 @@ export async function searchNearby(
 
   const params: FuzzySearchParams = {
     apiKey,
+    query: "*",
     position,
     radiusMeters: options?.radius ?? 1000,
     limit: options?.limit ?? 20,

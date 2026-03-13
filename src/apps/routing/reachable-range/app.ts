@@ -6,7 +6,6 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 import { bboxFromGeoJSON, type Place, type PolygonFeature } from "@tomtom-org/maps-sdk/core";
 import { TomTomMap, PlacesModule, GeometriesModule } from "@tomtom-org/maps-sdk/map";
-import type { ReachableRangeParams } from "@tomtom-org/maps-sdk/services";
 import { createMapControls } from "../../shared/map-controls";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
 import { extractFullData } from "../../shared/decompress";
@@ -18,7 +17,7 @@ let map: TomTomMap | null = null;
 let placesModule: PlacesModule | null = null;
 let geometriesModule: GeometriesModule | null = null;
 let isReady = false;
-let pendingData: PolygonFeature<ReachableRangeParams> | null = null;
+let pendingData: PolygonFeature | null = null;
 
 // App instance created early so we can reference it
 const app = new App({ name: "TomTom Reachable Range", version: "1.0.0" });
@@ -40,7 +39,7 @@ async function initializeMap() {
 
   // Use GeometriesModule with inverted theme to highlight the reachable area
   // by darkening everything outside the polygon boundary
-  geometriesModule = await GeometriesModule.get(map, { theme: "inverted" });
+  geometriesModule = await GeometriesModule.get(map);
 
   // Add map controls for theme and traffic
   await createMapControls(map, {
@@ -56,7 +55,7 @@ async function initializeMap() {
   }
 }
 
-function processData(rangeFeature: PolygonFeature<ReachableRangeParams>) {
+function processData(rangeFeature: PolygonFeature) {
   if (!map || !geometriesModule) return;
 
   // SDK calculateReachableRange returns a GeoJSON PolygonFeature directly
@@ -101,7 +100,7 @@ function processData(rangeFeature: PolygonFeature<ReachableRangeParams>) {
   }
 }
 
-async function displayRange(apiResponse: PolygonFeature<ReachableRangeParams>) {
+async function displayRange(apiResponse: PolygonFeature) {
   if (!isReady) {
     pendingData = apiResponse;
     return;
@@ -131,9 +130,7 @@ app.ontoolresult = async (r) => {
       showMapUI();
       await initializeMap();
       // Fetch full data from cache using viz_id
-      void displayRange(
-        (await extractFullData(app, apiResponse)) as PolygonFeature<ReachableRangeParams>
-      );
+      void displayRange((await extractFullData(app, apiResponse)) as PolygonFeature);
     }
   } catch (e) {
     console.error(e);

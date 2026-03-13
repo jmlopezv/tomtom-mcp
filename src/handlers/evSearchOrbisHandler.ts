@@ -19,7 +19,7 @@
 
 import { logger } from "../utils/logger";
 import { searchEVStations } from "../services/search/evSearchSDKService";
-import { buildCompressedResponse } from "./shared/responseTrimmer";
+import { buildCompressedResponse, trimGeoJSONFeatureProperties } from "./shared/responseTrimmer";
 import type { Places } from "@tomtom-org/maps-sdk/core";
 
 interface ConnectorInfo {
@@ -34,48 +34,20 @@ interface ConnectorInfo {
 
 /**
  * Trim SDK GeoJSON search response for EV stations.
- * Removes verbose properties while keeping essential EV-specific data
- * (station name, address, connector types, power, availability).
+ * Uses shared trimmer + additional EV-specific connector simplification.
  */
 function trimEVSearchResponse(response: Places): Places {
   if (!response?.features) return response;
 
   const trimmed = structuredClone(response);
 
-  trimmed.features = trimmed.features.map((feature) => {
+  trimmed.features.forEach((feature) => {
     const props = (feature.properties ?? {}) as Record<string, unknown>;
 
-    // Trim POI details — keep name, phone, url
-    const poi = props.poi as Record<string, unknown> | undefined;
-    if (poi) {
-      delete poi.classifications;
-      delete poi.categorySet;
-      delete poi.timeZone;
-      delete poi.features;
-      delete poi.brands;
-      delete poi.openingHours;
-    }
+    // Apply shared GeoJSON feature trimming
+    trimGeoJSONFeatureProperties(props);
 
-    // Remove verbose metadata
-    delete props.dataSources;
-    delete props.matchConfidence;
-    delete props.info;
-    delete props.score;
-    delete props.viewport;
-    delete props.boundingBox;
-    delete props.entryPoints;
-
-    // Trim address — keep freeformAddress, streetName, municipality, countryCode
-    const address = props.address as Record<string, unknown> | undefined;
-    if (address) {
-      delete address.countryCodeISO3;
-      delete address.countrySubdivisionCode;
-      delete address.countrySubdivisionName;
-      delete address.localName;
-      delete address.extendedPostalCode;
-    }
-
-    // Simplify chargingPark connectors — keep type, power, speed, count
+    // EV-specific: simplify chargingPark connectors — keep type, power, speed, count
     const chargingPark = props.chargingPark as { connectors?: ConnectorInfo[] } | undefined;
     if (chargingPark?.connectors) {
       chargingPark.connectors = chargingPark.connectors.map((c: ConnectorInfo) => ({
@@ -86,13 +58,6 @@ function trimEVSearchResponse(response: Places): Places {
         count: c.count,
       })) as ConnectorInfo[];
     }
-
-    // Remove internal IDs from POI
-    if (poi) {
-      delete poi.categoryIds;
-    }
-
-    return feature;
   });
 
   return trimmed;

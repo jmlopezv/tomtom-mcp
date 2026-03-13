@@ -20,55 +20,23 @@
 import { logger } from "../utils/logger";
 import { searchInArea } from "../services/search/areaSearchSDKService";
 import type { AreaSearchParams } from "../services/search/areaSearchSDKService";
-import { buildCompressedResponse } from "./shared/responseTrimmer";
+import { buildCompressedResponse, trimGeoJSONFeatureProperties } from "./shared/responseTrimmer";
 import { generateCirclePoints } from "../services/map/geometryUtils";
 import type { SearchResponse } from "@tomtom-org/maps-sdk/services";
 import type { Feature, Polygon, Position } from "geojson";
 
 /**
  * Trim SDK GeoJSON search response for area search.
- * Removes verbose POI metadata, entry points, and redundant address fields.
+ * Uses shared GeoJSON feature trimmer for consistent behavior.
  */
 function trimAreaSearchResponse(response: SearchResponse): SearchResponse {
   if (!response?.features) return response;
 
   const trimmed = structuredClone(response);
 
-  trimmed.features = trimmed.features.map((feature) => {
+  trimmed.features.forEach((feature) => {
     const props = (feature.properties ?? {}) as Record<string, unknown>;
-
-    const poi = props.poi as Record<string, unknown> | undefined;
-    if (poi) {
-      delete poi.classifications;
-      delete poi.categorySet;
-      delete poi.timeZone;
-      delete poi.features;
-      delete poi.brands;
-      delete poi.openingHours;
-    }
-
-    delete props.dataSources;
-    delete props.matchConfidence;
-    delete props.info;
-    delete props.score;
-    delete props.viewport;
-    delete props.boundingBox;
-    delete props.entryPoints;
-
-    if (poi) {
-      delete poi.categoryIds;
-    }
-
-    const address = props.address as Record<string, unknown> | undefined;
-    if (address) {
-      delete address.countryCodeISO3;
-      delete address.countrySubdivisionCode;
-      delete address.countrySubdivisionName;
-      delete address.localName;
-      delete address.extendedPostalCode;
-    }
-
-    return feature;
+    trimGeoJSONFeatureProperties(props);
   });
 
   return trimmed;

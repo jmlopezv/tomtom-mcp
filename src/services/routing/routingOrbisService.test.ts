@@ -108,10 +108,9 @@ describe("Routing SDK Service", () => {
       });
 
       expect(result).toBeDefined();
-      // SDK returns GeoJSON PolygonFeature
-      expect(result.type).toBe("Feature");
-      expect(result.geometry?.type).toBe("Polygon");
-      expect(Array.isArray(result.geometry?.coordinates)).toBe(true);
+      expect(result.reachableRange).toBeDefined();
+      expect(result.reachableRange.center).toBeDefined();
+      expect(Array.isArray(result.reachableRange.boundary)).toBe(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("429") || message.includes("404")) {
@@ -130,8 +129,8 @@ describe("Routing SDK Service", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.type).toBe("Feature");
-      expect(result.geometry?.type).toBe("Polygon");
+      expect(result.reachableRange).toBeDefined();
+      expect(Array.isArray(result.reachableRange.boundary)).toBe(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("429") || message.includes("404")) {
