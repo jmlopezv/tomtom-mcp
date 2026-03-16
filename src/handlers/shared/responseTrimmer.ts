@@ -243,11 +243,30 @@ export function trimRoutingResponse(response: unknown, _backend?: Backend): unkn
       if (props) {
         delete props.guidance;
         delete props.progress;
-        // Remove per-section geometry coordinates if present
-        if (Array.isArray(props.sections)) {
-          (props.sections as Array<Record<string, unknown>>).forEach((section) => {
-            delete section.geometry;
-          });
+        // Remove per-section geometry and verbose section types not useful for an AI agent
+        const sections = props.sections as Record<string, unknown> | undefined;
+        if (sections && typeof sections === "object") {
+          // These section types are map-rendering / point-index data with no actionable info for an agent
+          const SECTIONS_TO_STRIP = [
+            "roadShields",
+            "speedLimit",
+            "urban",
+            "tunnel",
+            "lowEmissionZone",
+            "pedestrian",
+            "vehicleRestricted",
+          ];
+          for (const key of SECTIONS_TO_STRIP) {
+            delete sections[key];
+          }
+          // Remove geometry from any remaining sections
+          for (const value of Object.values(sections)) {
+            if (Array.isArray(value)) {
+              value.forEach((section: Record<string, unknown>) => {
+                delete section.geometry;
+              });
+            }
+          }
         }
       }
     });

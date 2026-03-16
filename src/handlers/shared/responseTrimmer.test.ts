@@ -127,6 +127,59 @@ describe("trimRoutingResponse", () => {
     expect(trimmed.routes![0].sections).toBeDefined();
     expect(trimmed.routes![0].sections![0].travelMode).toBe("car");
   });
+
+  it("should strip verbose section types from SDK/Orbis GeoJSON format", () => {
+    const response = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [[4.89, 52.37], [13.4, 52.52]] },
+          properties: {
+            summary: { lengthInMeters: 597786, travelTimeInSeconds: 19733 },
+            sections: {
+              leg: [{ startPointIndex: 0, endPointIndex: 100, summary: { lengthInMeters: 597786 } }],
+              roadShields: [{ id: "rs1", startPointIndex: 2, endPointIndex: 69, roadShieldReferences: [{ reference: "deu-primary", shieldContent: "5" }] }],
+              speedLimit: [{ id: "sl1", startPointIndex: 0, endPointIndex: 81, maxSpeedLimitInKmh: 50 }],
+              urban: [{ id: "u1", startPointIndex: 0, endPointIndex: 109 }],
+              tunnel: [{ id: "t1", startPointIndex: 201, endPointIndex: 204 }],
+              lowEmissionZone: [{ id: "lez1", startPointIndex: 0, endPointIndex: 409 }],
+              pedestrian: [{ id: "p1", startPointIndex: 6784, endPointIndex: 6789 }],
+              vehicleRestricted: [{ id: "vr1", startPointIndex: 6784, endPointIndex: 6789 }],
+              motorway: [{ id: "m1", startPointIndex: 430, endPointIndex: 6606 }],
+              country: [{ id: "c1", startPointIndex: 0, endPointIndex: 6789, countryCodeISO3: "DEU" }],
+              traffic: [{ id: "tr1", startPointIndex: 422, endPointIndex: 430, delayInSeconds: 48, magnitudeOfDelay: "minor" }],
+              importantRoadStretch: [{ id: "irs1", startPointIndex: 952, endPointIndex: 1821, roadNumbers: ["A9", "E51"] }],
+            },
+          },
+        },
+      ],
+    };
+
+    const trimmed = trimRoutingResponse(response) as Record<string, unknown>;
+    const features = trimmed.features as Array<Record<string, unknown>>;
+    const sections = (features[0].properties as Record<string, unknown>).sections as Record<string, unknown>;
+
+    // Stripped sections
+    expect(sections.roadShields).toBeUndefined();
+    expect(sections.speedLimit).toBeUndefined();
+    expect(sections.urban).toBeUndefined();
+    expect(sections.tunnel).toBeUndefined();
+    expect(sections.lowEmissionZone).toBeUndefined();
+    expect(sections.pedestrian).toBeUndefined();
+    expect(sections.vehicleRestricted).toBeUndefined();
+
+    // Kept sections
+    expect(sections.leg).toBeDefined();
+    expect(sections.motorway).toBeDefined();
+    expect(sections.country).toBeDefined();
+    expect(sections.traffic).toBeDefined();
+    expect(sections.importantRoadStretch).toBeDefined();
+
+    // Geometry should be removed
+    const geom = (features[0].geometry as Record<string, unknown>);
+    expect(geom.coordinates).toBeUndefined();
+  });
 });
 
 describe("trimSearchResponse", () => {

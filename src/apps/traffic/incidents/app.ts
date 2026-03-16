@@ -83,12 +83,13 @@ function showPopupForFeature(
 ): void {
   if (!map) return;
 
+  const props = feature.properties || {};
+
   if (activePopup) {
     activePopup.remove();
     activePopup = null;
   }
 
-  const props = feature.properties || {};
   const html = buildIncidentPopupHtml(props);
 
   activePopup = new Popup({
@@ -146,7 +147,7 @@ function autoOpenFirstIncident(): void {
     const features = gl.queryRenderedFeatures(undefined, { layers: incidentLayers });
 
     // Pick a random incident that has a description
-    const withDesc = features.filter((f) => f.properties?.description_0);
+    const withDesc = features.filter((f) => f.properties?.description || f.properties?.description_0);
     const feat =
       withDesc.length > 0 ? withDesc[Math.floor(Math.random() * withDesc.length)] : undefined;
     if (!feat) {
@@ -177,42 +178,81 @@ function autoOpenFirstIncident(): void {
   gl.once("idle", tryOpen);
 }
 
-// Severity styles by magnitude_of_delay
-const MAGNITUDE_STYLES: Record<number, { label: string; color: string }> = {
-  0: { label: "Unknown", color: "#6b7280" },
-  1: { label: "Minor", color: "#ca8a04" },
-  2: { label: "Moderate", color: "#ea580c" },
-  3: { label: "Major", color: "#dc2626" },
-  4: { label: "Indefinite", color: "#991b1b" },
-};
 
 // Inline SVG icons for popup rows
 const ICON_WARNING = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
 const ICON_LOCATION = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 const ICON_CLOCK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
+// Magnitude string → severity style mapping (SDK uses string values)
+const MAGNITUDE_LABEL: Record<string, { label: string; color: string }> = {
+  // SDK click events (camelCase string values)
+  unknown: { label: "Unknown", color: "#6b7280" },
+  minor: { label: "Minor", color: "#ca8a04" },
+  moderate: { label: "Moderate", color: "#ea580c" },
+  major: { label: "Major", color: "#dc2626" },
+  indefinite: { label: "Indefinite", color: "#991b1b" },
+  // Vector tile features (numeric values, stringified)
+  "0": { label: "Unknown", color: "#6b7280" },
+  "1": { label: "Minor", color: "#ca8a04" },
+  "2": { label: "Moderate", color: "#ea580c" },
+  "3": { label: "Major", color: "#dc2626" },
+  "4": { label: "Indefinite", color: "#991b1b" },
+};
+
+// Category slug → display name (SDK uses kebab-case strings)
+const CATEGORY_LABEL: Record<string, string> = {
+  accident: "Accident",
+  fog: "Fog",
+  "dangerous-conditions": "Dangerous Conditions",
+  rain: "Rain",
+  ice: "Ice",
+  "lane-restrictions": "Lane Restrictions",
+  "lane-closure": "Lane Closure",
+  "road-closed": "Road Closure",
+  "road-works": "Road Works",
+  wind: "Wind",
+  flooding: "Flooding",
+  detour: "Detour",
+  cluster: "Cluster",
+};
+
 function buildIncidentPopupHtml(props: Record<string, unknown>): string {
-  // Collect all description_N fields (compound incidents can have multiple)
-  const descriptions: string[] = [];
-  for (let i = 0; ; i++) {
-    const desc = props[`description_${i}`] as string | undefined;
-    if (!desc) break;
-    descriptions.push(desc);
-  }
-
-  const magnitude = Number(props.magnitude_of_delay ?? -1);
-  const magnitudeStyle = MAGNITUDE_STYLES[magnitude];
+  // SDK click events use camelCase; vector tile features (auto-popup) use snake_case.
+  // Read both so the same function works for either source.
+  const description = (props.description as string) || (props.description_0 as string) || "";
+  const category = (props.category as string) || (props.icon_category_0 as string) || "";
+  const rawMagnitude = props.magnitudeOfDelay ?? props.magnitude_of_delay ?? "";
+  const magnitudeOfDelay = String(rawMagnitude);
+  const roadCategory = (props.roadCategory as string) || (props.road_category as string) || "";
+  const roadSubcategory = (props.roadSubcategory as string) || (props.road_subcategory as string) || "";
   const delay = props.delay ? Number(props.delay) : 0;
-  const roadCategory = (props.road_category as string) || "";
-  const roadSubcategory = (props.road_subcategory as string) || "";
+  const numberOfReports = props.numberOfReports ? Number(props.numberOfReports) : (props.number_of_reports ? Number(props.number_of_reports) : 0);
+  const timeValidity = (props.timeValidity as string) || (props.time_validity as string) || "";
+  const startTime = (props.startTime as string) || (props.start_time as string) || "";
+  const endTime = (props.endTime as string) || (props.end_time as string) || "";
 
-  const title = descriptions[0] || "Traffic Incident";
-  const subtitle = descriptions.length > 1 ? descriptions.slice(1).join(", ") : "";
+  const magnitudeStyle = MAGNITUDE_LABEL[magnitudeOfDelay.toLowerCase()] || null;
+  const categoryName = CATEGORY_LABEL[category] || "";
+
+  // Title: prefer description, then category name, then magnitude
+  let title = description;
+  if (!title) {
+    title = categoryName || (magnitudeStyle ? `${magnitudeStyle.label} Congestion` : "Traffic");
+  }
 
   let html = `<div class="incident-popup">`;
 
   // Title
   html += `<div class="incident-popup-title">${escapeHtml(title)}</div>`;
+
+  // Category badge (if we have a category and description already covers the title)
+  if (description && categoryName) {
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon">${ICON_WARNING}</span>`;
+    html += `<span>${escapeHtml(categoryName)}</span>`;
+    html += `</div>`;
+  }
 
   // Severity row
   if (magnitudeStyle) {
@@ -222,17 +262,29 @@ function buildIncidentPopupHtml(props: Record<string, unknown>): string {
     html += `</div>`;
   }
 
-  // Location row — road category info
-  const road = [roadCategory, roadSubcategory].filter(Boolean).join(" \u00b7 ");
+  // Road category row
+  const road = [roadCategory, roadSubcategory].filter(Boolean).join(" · ");
   if (road) {
     html += `<div class="incident-popup-row">`;
     html += `<span class="incident-popup-icon">${ICON_LOCATION}</span>`;
-    html += `<span>${escapeHtml(subtitle ? `${subtitle} \u00b7 ${road}` : road)}</span>`;
+    html += `<span>${escapeHtml(road)}</span>`;
     html += `</div>`;
-  } else if (subtitle) {
+  }
+
+  // Time info row
+  const timeDetails: string[] = [];
+  if (timeValidity) timeDetails.push(timeValidity);
+  if (startTime) {
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : null;
+    const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    timeDetails.length = 0; // replace with formatted dates
+    timeDetails.push(`${fmt(start)}${end ? ` → ${fmt(end)}` : ""}`);
+  }
+  if (timeDetails.length > 0) {
     html += `<div class="incident-popup-row">`;
-    html += `<span class="incident-popup-icon">${ICON_LOCATION}</span>`;
-    html += `<span>${escapeHtml(subtitle)}</span>`;
+    html += `<span class="incident-popup-icon">${ICON_CLOCK}</span>`;
+    html += `<span>${escapeHtml(timeDetails.join(" · "))}</span>`;
     html += `</div>`;
   }
 
@@ -243,6 +295,14 @@ function buildIncidentPopupHtml(props: Record<string, unknown>): string {
     html += `<div class="incident-popup-row">`;
     html += `<span class="incident-popup-icon">${ICON_CLOCK}</span>`;
     html += `<span>${escapeHtml(delayText)}</span>`;
+    html += `</div>`;
+  }
+
+  // Reports count
+  if (numberOfReports > 0) {
+    html += `<div class="incident-popup-row">`;
+    html += `<span class="incident-popup-icon">${ICON_LOCATION}</span>`;
+    html += `<span>${numberOfReports} report${numberOfReports > 1 ? "s" : ""}</span>`;
     html += `</div>`;
   }
 
@@ -260,10 +320,10 @@ function escapeHtml(text: string): string {
 // Cinematic camera — fly to bbox
 // ---------------------------------------------------------------------------
 
-function flyToBbox(bbox: string): void {
+function flyToBbox(bbox: number[] | string): void {
   if (!map) return;
 
-  const parts = bbox.split(",").map(Number);
+  const parts = Array.isArray(bbox) ? bbox : bbox.split(",").map(Number);
   if (parts.length !== 4 || parts.some(isNaN)) {
     console.warn("Invalid bbox format:", bbox);
     return;
@@ -352,7 +412,7 @@ function destroyTimer(): void {
 
 app.ontoolinput = async (params) => {
   const args = (params.arguments || {}) as Record<string, unknown>;
-  const bbox = args.bbox as string | undefined;
+  const bbox = args.bbox as number[] | string | undefined;
   const showUI = args.show_ui !== false;
 
   if (!showUI) return;
