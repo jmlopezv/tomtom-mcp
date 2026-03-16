@@ -61,7 +61,7 @@ export const tomtomSearchAlongRouteSchema = {
     .array(z.string())
     .optional()
     .describe(
-      "Filter POI results by category code. Use the tomtom-poi-categories tool first to discover valid category codes for your search intent."
+      "Filter POI results by UPPER_SNAKE_CASE text category codes (e.g. 'RESTAURANT', 'PARKING_GARAGE'), NOT numeric IDs. IMPORTANT: Never guess codes — always call tomtom-poi-categories first with the user's intent as keywords to discover valid codes."
     ),
 
   language: z

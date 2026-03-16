@@ -176,7 +176,12 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
     {
       title: "TomTom POI Categories",
       description:
-        "Browse and search available POI (Point of Interest) category codes. Use this tool to discover valid category codes before filtering search results with poiCategories parameter in other search tools (fuzzy-search, poi-search, nearby, area-search). Supports keyword filtering — e.g. 'gym', 'restaurant', 'parking'.",
+        "Look up POI category codes from natural language. REQUIRED before using poiCategories in any search tool. " +
+        "Category codes are UPPER_SNAKE_CASE text strings (e.g. 'ITALIAN_RESTAURANT', 'PARKING_GARAGE'), NOT numeric IDs. " +
+        "Workflow: (1) Extract the user's intent as keywords (e.g. user asks 'italian restaurants in Amsterdam' → filters: ['italian restaurant']). " +
+        "(2) Call this tool with those keywords in the filters parameter. " +
+        "(3) Use the returned text category codes in the poiCategories parameter of search tools (fuzzy-search, poi-search, nearby, area-search). " +
+        "Never guess or hardcode category codes — always discover them through this tool first.",
       inputSchema: schemas.tomtomPOICategoriesSchema,
       annotations: {
         title: "TomTom POI Categories",
