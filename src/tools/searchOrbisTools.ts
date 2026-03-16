@@ -34,6 +34,7 @@ const REVERSE_GEOCODE_RESOURCE_URI = "ui://tomtom-search/reverse-geocode/app.htm
 const FUZZY_SEARCH_RESOURCE_URI = "ui://tomtom-search/fuzzy-search/app.html";
 const POI_SEARCH_RESOURCE_URI = "ui://tomtom-search/poi-search/app.html";
 const NEARBY_SEARCH_RESOURCE_URI = "ui://tomtom-search/nearby-search/app.html";
+const POI_CATEGORIES_RESOURCE_URI = "ui://tomtom-search/poi-categories/app.html";
 
 /**
  * Creates and registers search-related tools
@@ -50,6 +51,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
   await registerAppResourceFromPath(server, FUZZY_SEARCH_RESOURCE_URI, "search", "fuzzy-search");
   await registerAppResourceFromPath(server, POI_SEARCH_RESOURCE_URI, "search", "poi-search");
   await registerAppResourceFromPath(server, NEARBY_SEARCH_RESOURCE_URI, "search", "nearby-search");
+  await registerAppResourceFromPath(server, POI_CATEGORIES_RESOURCE_URI, "search", "poi-categories");
 
   // Geocode tool with UI
   registerAppTool(
@@ -192,6 +194,7 @@ export async function createSearchOrbisTools(server: McpServer): Promise<void> {
       },
       _meta: {
         backend: "tomtom-orbis-maps",
+        [RESOURCE_URI_META_KEY]: POI_CATEGORIES_RESOURCE_URI,
       },
     },
     createPOICategoriesHandler()

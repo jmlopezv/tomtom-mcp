@@ -188,8 +188,9 @@ export function createPOICategoriesHandler() {
       const filters = params.filters as string[] | undefined;
       const result = await fetchPOICategories(filters);
       logger.info({ count: result.poiCategories?.length ?? 0 }, "✅ POI categories retrieved");
+      const response = { ...result, _meta: { show_ui: false } };
       return {
-        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }],
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
