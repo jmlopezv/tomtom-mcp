@@ -17,7 +17,6 @@
   "scripts": {
     "build:ts": "tsc --emitDeclarationOnly --declaration --declarationMap",
     "build:rollup": "rollup -c",
-    "build:ui": "cd src/ui_resources && vite build",
     "build:apps": "cross-env NODE_OPTIONS=\"--no-warnings --loader ts-node/esm\" node scripts/build-apps.ts",
     "build:apps:search": "cross-env NODE_OPTIONS=\"--no-warnings --loader ts-node/esm\" CATEGORY=search node scripts/build-apps.ts",
     "build:apps:routing": "cross-env NODE_OPTIONS=\"--no-warnings --loader ts-node/esm\" CATEGORY=routing node scripts/build-apps.ts",
