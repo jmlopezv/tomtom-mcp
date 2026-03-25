@@ -18,7 +18,7 @@
  */
 
 import { logger } from "../utils/logger";
-import { calculateEVRoute } from "../services/routing/evRoutingSDKService";
+import { calculateEVRoute } from "../services/routing/routingOrbisService";
 import { buildCompressedResponse } from "./shared/responseTrimmer";
 import type { Routes } from "@tomtom-org/maps-sdk/core";
 
