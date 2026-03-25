@@ -19,7 +19,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { tomtomAreaSearchSchema } from "../schemas/search/searchOrbisSchema";
-import { createAreaSearchHandler } from "../handlers/areaSearchOrbisHandler";
+import { createAreaSearchHandler } from "../handlers/searchOrbisHandler";
 import { registerAppTool, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
 import { registerAppResourceFromPath } from "./helpers/resourceRegistry";
 
