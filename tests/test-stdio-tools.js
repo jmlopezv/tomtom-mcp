@@ -1432,6 +1432,13 @@ async function main() {
           results.addResult(toolName, 'availability', 'SKIP', `Tool ${toolName} is not available for TomTom Orbis Maps provider`);
           continue;
         }
+      // Skip data-viz tests for non-Orbis providers (tomtom-data-viz is Orbis-only)
+        if (MAPS_ENV !== 'tomtom-orbis-maps' && toolName === 'tomtom-data-viz') {
+          console.log(`\n${toolName.toUpperCase()} TESTS`);
+          console.log('-'.repeat(40));
+          results.addResult(toolName, 'availability', 'SKIP', `Tool ${toolName} is only available on TomTom Orbis Maps`);
+          continue;
+        }
       if (!COMPREHENSIVE_TEST_SCENARIOS[toolName]) {
         results.addResult(toolName, 'setup', 'SKIP', `No test scenarios defined for tool ${toolName}`);
         continue;
