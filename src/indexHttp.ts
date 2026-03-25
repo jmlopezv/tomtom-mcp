@@ -180,16 +180,11 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
   app.post(`/${ENDPOINT_MCP}`, async (req: Request, res: Response) => {
     const requestId = randomUUID();
     const apiKey = extractApiKey(req);
-    const bearerToken = extractBearerToken(req);
-    logger.info({ requestId, hasApiKey: apiKey != null, hasBearerToken: bearerToken != null }, "Incoming MCP request");
     try {
-      if (apiKey == null && !(await jwtVerifier.verifyBearerToken(bearerToken))) {
-        logger.info("failed")
-        logger.warn({ requestId }, "JWT verification failed");
+      if (apiKey == null && !(await jwtVerifier.verifyBearerToken(extractBearerToken(req)))) {
         res.status(401).end();
         return;
       }
-      logger.info({ requestId, authMethod: apiKey != null ? "api-key" : "bearer" }, "Authentication successful");
 
       const backend = getBackend(req);
       if (!availableBackends.includes(backend)) {
@@ -215,32 +210,26 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       let resolvedApiKey = apiKey;
       if (resolvedApiKey == null) {
         if (tokenExchanger == null) {
-          logger.error({ requestId }, "Bearer token received but token exchanger is not configured");
+          logger.error("Bearer token received but token exchanger is not configured");
           res.status(401).end();
           return;
         }
 
-        logger.info({ requestId }, "Starting OBO token exchange");
-        const bearerTokenValue = bearerToken!;
+        const bearerToken = extractBearerToken(req)!;
         const [accountToken, apimToken] = await Promise.all([
-          tokenExchanger.exchangeForAccountToken(bearerTokenValue),
-          tokenExchanger.exchangeForApimToken(bearerTokenValue),
+          tokenExchanger.exchangeForAccountToken(bearerToken),
+          tokenExchanger.exchangeForApimToken(bearerToken),
         ]);
         if (accountToken == null || apimToken == null) {
-          logger.warn({ requestId, accountTokenOk: accountToken != null, apimTokenOk: apimToken != null }, "OBO token exchange failed");
           res.status(401).end();
           return;
         }
-        logger.info({ requestId }, "OBO token exchange successful");
 
-        logger.info({ requestId }, "Resolving API key from gateway");
         resolvedApiKey = await gatewayApiKeyResolver.resolveApiKey(accountToken, apimToken);
         if (resolvedApiKey == null) {
-          logger.error({ requestId }, "API key resolution failed");
           res.status(502).end();
           return;
         }
-        logger.info({ requestId }, "API key resolved successfully");
       }
 
       await runWithSessionContext(resolvedApiKey, backend, async () => {

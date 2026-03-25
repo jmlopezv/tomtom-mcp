@@ -53,12 +53,7 @@ export class JwtVerifier {
 
       return true;
     } catch (error) {
-
-      if (error instanceof Error) {
-        logger.error({ name: error.name, message: error.message, stack: error.stack }, "Bearer token verification failed");
-      } else {
-        logger.error({ error: JSON.stringify(error) }, "Bearer token verification failed");
-      }
+      logger.debug({ err: error }, "Bearer token verification failed");
       return false;
     }
   }
