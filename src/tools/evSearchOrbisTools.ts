@@ -18,7 +18,7 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { tomtomEvSearchSchema } from "../schemas/search/evSearchOrbisSchema";
+import { tomtomEvSearchSchema } from "../schemas/search/searchOrbisSchema";
 import { createEVSearchHandler } from "../handlers/evSearchOrbisHandler";
 import { registerAppTool, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
 import { registerAppResourceFromPath } from "./helpers/resourceRegistry";

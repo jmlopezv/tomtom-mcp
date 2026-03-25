@@ -18,7 +18,7 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { tomtomSearchAlongRouteSchema } from "../schemas/search/searchAlongRouteOrbisSchema";
+import { tomtomSearchAlongRouteSchema } from "../schemas/search/searchOrbisSchema";
 import { createSearchAlongRouteHandler } from "../handlers/searchAlongRouteOrbisHandler";
 import { registerAppTool, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
 import { registerAppResourceFromPath } from "./helpers/resourceRegistry";
