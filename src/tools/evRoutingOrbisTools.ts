@@ -19,7 +19,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { tomtomEvRoutingSchema } from "../schemas/routing/routingOrbisSchema";
-import { createEVRoutingHandler } from "../handlers/evRoutingOrbisHandler";
+import { createEVRoutingHandler } from "../handlers/routingOrbisHandler";
 import { registerAppTool, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
 import { registerAppResourceFromPath } from "./helpers/resourceRegistry";
 
