@@ -18,8 +18,8 @@ import { ConfidentialClientApplication } from "@azure/msal-node";
 import { logger } from "../utils/logger";
 
 export interface TokenExchangerConfig {
-  /** Entra ID tenant ID */
-  tenantId: string;
+  /** CIAM authority host (e.g. tomtomext.ciamlogin.com) */
+  ciamAuthorityHost: string;
   /** MCP server's app registration client ID */
   clientId: string;
   /** MCP server's app registration client secret */
@@ -47,7 +47,8 @@ export class TokenExchanger {
       auth: {
         clientId: config.clientId,
         clientSecret: config.clientSecret,
-        authority: `https://login.microsoftonline.com/${config.tenantId}`,
+        authority: `https://${config.ciamAuthorityHost}/`,
+        knownAuthorities: [config.ciamAuthorityHost],
       },
     });
 

@@ -32,7 +32,8 @@ describe("HTTP Server Integration - Authentication", () => {
 
   beforeAll(async () => {
     vi.stubGlobal("fetch", createMockFetch());
-    delete process.env.ENTRA_TENANT_ID;
+    delete process.env.CIAM_TENANT_ID;
+    delete process.env.CIAM_DOMAIN;
 
     serverResult = await createHttpServer({
       port: TEST_PORT,

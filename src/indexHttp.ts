@@ -116,17 +116,18 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     authorizationServer = AUTHORIZATION_SERVER,
   } = options;
 
-  const ciamTenantId = process.env.ENTRA_TENANT_ID;
-  const jwtVerifier = ciamTenantId
+  const ciamTenantId = process.env.CIAM_TENANT_ID;
+  const ciamDomain = process.env.CIAM_DOMAIN;
+  const jwtVerifier = ciamTenantId && ciamDomain
     ? new JwtVerifier({
-        jwksUri: `https://tomtomext.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
+        jwksUri: `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
         expectedIssuer: `https://${ciamTenantId}.ciamlogin.com/${ciamTenantId}/v2.0`,
       })
     : new JwtVerifier(authorizationServer);
 
-  const tokenExchanger = process.env.ENTRA_TENANT_ID
+  const tokenExchanger = ciamDomain
     ? new TokenExchanger({
-        tenantId: process.env.ENTRA_TENANT_ID,
+        ciamAuthorityHost: `${ciamDomain}.ciamlogin.com`,
         clientId: process.env.ENTRA_CLIENT_ID!,
         clientSecret: process.env.ENTRA_CLIENT_SECRET!,
         accountApiScope: ACCOUNT_API_SCOPE,
@@ -180,11 +181,15 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
   app.post(`/${ENDPOINT_MCP}`, async (req: Request, res: Response) => {
     const requestId = randomUUID();
     const apiKey = extractApiKey(req);
+    const bearerToken = extractBearerToken(req);
+    logger.info({ requestId, hasApiKey: apiKey != null, hasBearerToken: bearerToken != null }, "Incoming MCP request");
     try {
-      if (apiKey == null && !(await jwtVerifier.verifyBearerToken(extractBearerToken(req)))) {
+      if (apiKey == null && !(await jwtVerifier.verifyBearerToken(bearerToken))) {
+        logger.warn({ requestId }, "JWT verification failed");
         res.status(401).end();
         return;
       }
+      logger.info({ requestId, authMethod: apiKey != null ? "api-key" : "bearer" }, "Authentication successful");
 
       const backend = getBackend(req);
       if (!availableBackends.includes(backend)) {
@@ -210,26 +215,32 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       let resolvedApiKey = apiKey;
       if (resolvedApiKey == null) {
         if (tokenExchanger == null) {
-          logger.error("Bearer token received but token exchanger is not configured");
+          logger.error({ requestId }, "Bearer token received but token exchanger is not configured");
           res.status(401).end();
           return;
         }
 
-        const bearerToken = extractBearerToken(req)!;
+        logger.info({ requestId }, "Starting OBO token exchange");
+        const bearerTokenValue = bearerToken!;
         const [accountToken, apimToken] = await Promise.all([
-          tokenExchanger.exchangeForAccountToken(bearerToken),
-          tokenExchanger.exchangeForApimToken(bearerToken),
+          tokenExchanger.exchangeForAccountToken(bearerTokenValue),
+          tokenExchanger.exchangeForApimToken(bearerTokenValue),
         ]);
         if (accountToken == null || apimToken == null) {
+          logger.warn({ requestId, accountTokenOk: accountToken != null, apimTokenOk: apimToken != null }, "OBO token exchange failed");
           res.status(401).end();
           return;
         }
+        logger.info({ requestId }, "OBO token exchange successful");
 
+        logger.info({ requestId }, "Resolving API key from gateway");
         resolvedApiKey = await gatewayApiKeyResolver.resolveApiKey(accountToken, apimToken);
         if (resolvedApiKey == null) {
+          logger.error({ requestId }, "API key resolution failed");
           res.status(502).end();
           return;
         }
+        logger.info({ requestId }, "API key resolved successfully");
       }
 
       await runWithSessionContext(resolvedApiKey, backend, async () => {
