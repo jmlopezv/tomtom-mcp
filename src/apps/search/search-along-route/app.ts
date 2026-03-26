@@ -13,12 +13,11 @@ import {
   type BBox,
   type Routes,
   type Places,
-  type Place,
 } from "@tomtom-org/maps-sdk/core";
 import { TomTomMap, RoutingModule, PlacesModule } from "@tomtom-org/maps-sdk/map";
 import { createMapControls } from "../../shared/map-controls";
 import { setupPoiPopups, closePoiPopup } from "../../shared/poi-popup";
-import { extractWaypointsFromRoutes } from "../../shared/sdk-parsers";
+import { extractWaypointPositionsFromRoutes } from "../../shared/sdk-parsers";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
 import { extractFullData } from "../../shared/decompress";
 import { ensureTomTomConfigured } from "../../shared/sdk-config";
@@ -43,20 +42,7 @@ async function initializeMap() {
 
   routingModule = await RoutingModule.get(map);
 
-  placesModule = await PlacesModule.get(map, {
-    text: {
-      title: (place: Place) =>
-        (
-          place.properties as Record<string, unknown> & {
-            poi?: { name?: string };
-            address?: { freeformAddress?: string };
-          }
-        ).poi?.name ||
-        place.properties.address?.freeformAddress ||
-        "Unknown",
-    },
-    theme: "pin",
-  });
+  placesModule = await PlacesModule.get(map, { theme: "pin" });
 
   setupPoiPopups(map, placesModule);
 
@@ -89,7 +75,7 @@ function processData(data: { route: Routes; pois: Places }) {
 
   // Display route (SDK GeoJSON format — no parsing needed)
   if (data.route?.features?.length) {
-    const waypoints = extractWaypointsFromRoutes(data.route);
+    const waypoints = extractWaypointPositionsFromRoutes(data.route);
     routingModule.showRoutes(data.route);
     routingModule.showWaypoints(waypoints);
   }
