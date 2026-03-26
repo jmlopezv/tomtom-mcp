@@ -97,8 +97,9 @@ describe("createDynamicOrbisMapHandler", () => {
     expect(response.content[2].type).toBe("text");
 
     // Text summary includes dimensions and size
-    expect(response.content[0].text).toContain("800x600");
-    expect(response.content[0].text).toContain("compact");
+    const summary = response.content[0] as { type: "text"; text: string };
+    expect(summary.text).toContain("800x600");
+    expect(summary.text).toContain("compact");
 
     // Image uses compressed data in compact mode
     const imgContent = response.content[1] as { type: "image"; data: string; mimeType: string };
@@ -181,7 +182,8 @@ describe("createDynamicOrbisMapHandler", () => {
     });
 
     expect(response.isError).toBe(true);
-    const result = JSON.parse(response.content[0].text);
+    const errContent = response.content[0] as { type: "text"; text: string };
+    const result = JSON.parse(errContent.text);
     expect(result.error).toContain("Dynamic map dependencies not available");
     expect(result.help).toContain("skia-canvas");
   });
@@ -195,7 +197,8 @@ describe("createDynamicOrbisMapHandler", () => {
     });
 
     expect(response.isError).toBe(true);
-    const result = JSON.parse(response.content[0].text);
+    const errContent = response.content[0] as { type: "text"; text: string };
+    const result = JSON.parse(errContent.text);
     expect(result.error).toBe("Something went wrong");
     expect(result.help).toBeUndefined();
     expect(mockLogger.error).toHaveBeenCalled();

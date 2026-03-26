@@ -58,14 +58,14 @@ describe("createAppTools", () => {
 
     // Verify each registration includes proper options
     for (const call of mockRegisterAppTool.mock.calls) {
-      const options = call[2];
+      const options = call[2] as Record<string, unknown>;
       expect(options).toHaveProperty("title");
       expect(options).toHaveProperty("description");
       expect(options).toHaveProperty("inputSchema");
-      expect(options.annotations.readOnlyHint).toBe(true);
-      expect(options.annotations.destructiveHint).toBe(false);
+      expect((options.annotations as Record<string, unknown>).readOnlyHint).toBe(true);
+      expect((options.annotations as Record<string, unknown>).destructiveHint).toBe(false);
       // App-only visibility
-      expect(options._meta.ui.visibility).toEqual(["app"]);
+      expect((options._meta as Record<string, unknown>).ui).toEqual({ visibility: ["app"] });
     }
   });
 
