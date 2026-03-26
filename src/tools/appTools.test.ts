@@ -21,9 +21,9 @@ const mockGetEffectiveApiKey = vi.fn();
 const mockGetVizData = vi.fn();
 
 // Capture the handler callbacks passed to registerAppTool
-const registeredHandlers: Record<string, Function> = {};
+const registeredHandlers: Record<string, (...args: unknown[]) => unknown> = {};
 const mockRegisterAppTool = vi.fn(
-  (_server: unknown, name: string, _opts: unknown, handler: Function) => {
+  (_server: unknown, name: string, _opts: unknown, handler: (...args: unknown[]) => unknown) => {
     registeredHandlers[name] = handler;
   }
 );

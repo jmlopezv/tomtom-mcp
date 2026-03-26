@@ -20,9 +20,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 const mockReadFile = vi.fn();
 
 // Capture the resource handler passed to registerAppResource
-let capturedResourceHandler: Function | null = null;
+let capturedResourceHandler: (...args: unknown[]) => unknown | null = null;
 const mockRegisterAppResource = vi.fn(
-  (_server: unknown, _uri: string, _name: string, _opts: unknown, handler: Function) => {
+  (_server: unknown, _uri: string, _name: string, _opts: unknown, handler: (...args: unknown[]) => unknown) => {
     capturedResourceHandler = handler;
   }
 );
