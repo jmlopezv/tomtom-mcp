@@ -17,7 +17,7 @@ import {
 import { TomTomMap, RoutingModule, PlacesModule } from "@tomtom-org/maps-sdk/map";
 import { createMapControls } from "../../shared/map-controls";
 import { setupPoiPopups, closePoiPopup } from "../../shared/poi-popup";
-import { extractWaypointsFromRoutes } from "../../shared/sdk-parsers";
+import { extractWaypointPositionsFromRoutes } from "../../shared/sdk-parsers";
 import { shouldShowUI, showMapUI, hideMapUI, showErrorUI } from "../../shared/ui-visibility";
 import { extractFullData } from "../../shared/decompress";
 import { ensureTomTomConfigured } from "../../shared/sdk-config";
@@ -75,7 +75,7 @@ function processData(data: { route: Routes; pois: Places }) {
 
   // Display route (SDK GeoJSON format — no parsing needed)
   if (data.route?.features?.length) {
-    const waypoints = extractWaypointsFromRoutes(data.route);
+    const waypoints = extractWaypointPositionsFromRoutes(data.route);
     routingModule.showRoutes(data.route);
     routingModule.showWaypoints(waypoints);
   }
