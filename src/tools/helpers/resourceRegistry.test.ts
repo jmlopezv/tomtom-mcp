@@ -20,9 +20,14 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 const mockReadFile = vi.fn();
 
 // Capture the resource handler passed to registerAppResource
-let capturedResourceHandler: (...args: unknown[]) => unknown | null = null;
+type ResourceResult = {
+  contents: { uri: string; mimeType: string; text: string; _meta?: Record<string, unknown> }[];
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let capturedResourceHandler: ((...args: any[]) => Promise<ResourceResult>) | null = null;
 const mockRegisterAppResource = vi.fn(
-  (_server: unknown, _uri: string, _name: string, _opts: unknown, handler: (...args: unknown[]) => unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (_server: unknown, _uri: string, _name: string, _opts: unknown, handler: (...args: any[]) => Promise<ResourceResult>) => {
     capturedResourceHandler = handler;
   }
 );
@@ -60,7 +65,8 @@ describe("registerAppResourceFromPath", () => {
     expect(result.contents[0].uri).toBe(resourceUri);
     expect(result.contents[0].mimeType).toBe("text/html");
     expect(result.contents[0].text).toBe("<html><body>Test App</body></html>");
-    expect(result.contents[0]._meta.ui.csp.connectDomains).toContain("https://api.tomtom.com");
+    const meta = result.contents[0]._meta as { ui: { csp: { connectDomains: string[] } } };
+    expect(meta.ui.csp.connectDomains).toContain("https://api.tomtom.com");
   });
 
   it("should return fallback HTML when file read fails", async () => {

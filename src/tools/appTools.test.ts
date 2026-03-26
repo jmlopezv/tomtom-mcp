@@ -21,9 +21,15 @@ const mockGetEffectiveApiKey = vi.fn();
 const mockGetVizData = vi.fn();
 
 // Capture the handler callbacks passed to registerAppTool
-const registeredHandlers: Record<string, (...args: unknown[]) => unknown> = {};
+type ToolResponse = {
+  content: { type: string; text: string }[];
+  isError: boolean;
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const registeredHandlers: Record<string, (...args: any[]) => Promise<ToolResponse>> = {};
 const mockRegisterAppTool = vi.fn(
-  (_server: unknown, name: string, _opts: unknown, handler: (...args: unknown[]) => unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (_server: unknown, name: string, _opts: unknown, handler: (...args: any[]) => Promise<ToolResponse>) => {
     registeredHandlers[name] = handler;
   }
 );
