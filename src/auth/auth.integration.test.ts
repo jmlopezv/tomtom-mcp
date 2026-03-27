@@ -33,8 +33,10 @@ describe("HTTP Server Integration - Authentication", () => {
 
   beforeAll(async () => {
     vi.stubGlobal("fetch", createMockFetch());
-    delete process.env.CIAM_TENANT_ID;
-    delete process.env.CIAM_DOMAIN;
+    process.env.CIAM_TENANT_ID = "test-tenant-id";
+    process.env.CIAM_DOMAIN = "test";
+    process.env.ENTRA_CLIENT_ID = "test-client-id";
+    process.env.ENTRA_CLIENT_SECRET = "test-client-secret";
 
     serverResult = await createHttpServer({
       port: TEST_PORT,
@@ -53,7 +55,7 @@ describe("HTTP Server Integration - Authentication", () => {
     const metadata = await getOAuthProtectedResource();
 
     expect(metadata.resource).toBe(`${appConfig.baseUrl}/${ENDPOINT_MCP}`);
-    expect(metadata.authorization_servers).toEqual([TEST_AUTHORIZATION_SERVER]);
+    expect(metadata.authorization_servers).toEqual(["https://test.ciamlogin.com/test-tenant-id/v2.0"]);
     expect(metadata.scopes_supported).toEqual(["mcp:tools", "mcp:resources"]);
   });
 
@@ -67,7 +69,7 @@ describe("HTTP Server Integration - Authentication", () => {
     expect(response.status).toBe(401);
   });
 
-  it("rejects a valid Bearer token when token exchanger is not configured", async () => {
+  it("returns 401 when OBO token exchange fails", async () => {
     const response = await postMcpListTools({ authorization: `Bearer ${SIGNED_BEARER_TOKEN}` });
     expect(response.status).toBe(401);
   });
@@ -92,7 +94,9 @@ const TEST_PORT = 3995;
 const TEST_API_KEY = "test-api-key";
 
 const { privateKey: TEST_PRIVATE_KEY, publicJwk: TEST_PUBLIC_JWK } = await generateTestKeyPair();
-const SIGNED_BEARER_TOKEN = await signTestJwt(TEST_PRIVATE_KEY);
+const SIGNED_BEARER_TOKEN = await signTestJwt(TEST_PRIVATE_KEY, {
+  issuer: "https://test-tenant-id.ciamlogin.com/test-tenant-id/v2.0",
+});
 
 const TEST_GATEWAY_API_KEY = "test-resolved-api-key";
 
@@ -100,7 +104,7 @@ function createMockFetch() {
   const originalFetch = globalThis.fetch;
   return (input: string | URL | Request, init?: RequestInit) => {
     const url = resolveUrl(input);
-    if (url === TEST_JWKS_URI) {
+    if (url === TEST_JWKS_URI || url === "https://test.ciamlogin.com/test-tenant-id/discovery/v2.0/keys") {
       return Promise.resolve(makeJwksResponse(TEST_PUBLIC_JWK));
     }
     if (url === `${appConfig.accountApiBaseUrl}/project.v2.ProjectService/ListProjects`) {

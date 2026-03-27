@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ConfidentialClientApplication } from "@azure/msal-node";
+import { AuthError, ConfidentialClientApplication } from "@azure/msal-node";
 import { logger } from "../utils/logger";
 
 export interface TokenExchangerConfig {
@@ -53,8 +53,6 @@ export class TokenExchanger {
         knownAuthorities: [config.ciamAuthorityHost],
       },
     });
-
-    logger.info("TokenExchanger initialized");
   }
 
   async exchangeForAccountToken(userBearerToken: string): Promise<string | null> {
@@ -73,8 +71,11 @@ export class TokenExchanger {
       });
       return result?.accessToken ?? null;
     } catch (error) {
-      logger.error({ err: error }, "OBO token exchange failed");
-      return null;
+      if (error instanceof AuthError) {
+        logger.error({ err: error }, "OBO token exchange failed");
+        return null;
+      }
+      throw error;
     }
   }
 }

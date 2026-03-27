@@ -17,7 +17,6 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { appConfig, getAppConfig } from "./appConfig";
 import {
-  AUTHORIZATION_SERVER,
   ENDPOINT_HEALTH,
   ENDPOINT_MCP,
   ENDPOINT_OAUTH_PROTECTED_RESOURCE,
@@ -103,33 +102,32 @@ export function resolveBackendFromHeader(
  * createServer() is lightweight (in-memory tool registration, no network calls).
  */
 export async function createHttpServer(options: HttpServerOptions = {}): Promise<HttpServerResult> {
+  const config = getAppConfig();
   const {
     port = appConfig.port,
     fixedBackend = resolveFixedBackend(process.env.MAPS),
     defaultBackend = "tomtom-maps",
     allowedOrigins = appConfig.allowedOrigins,
-    authorizationServer = AUTHORIZATION_SERVER,
+    authorizationServer = config.authorizationServer,
   } = options;
-
-  const config = getAppConfig();
   const { ciamTenantId, ciamDomain, entraClientId, entraClientSecret } = config;
-  const jwtVerifier = ciamTenantId && ciamDomain
-    ? new JwtVerifier({
-        jwksUri: `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
-        expectedIssuer: `https://${ciamTenantId}.ciamlogin.com/${ciamTenantId}/v2.0`,
-      })
-    : new JwtVerifier(authorizationServer);
+  if (!ciamTenantId || !ciamDomain || !entraClientId || !entraClientSecret) {
+    throw new Error("Missing required env vars: CIAM_TENANT_ID, CIAM_DOMAIN, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET");
+  }
 
-  const tokenExchanger = ciamTenantId && ciamDomain && entraClientId && entraClientSecret
-    ? new TokenExchanger({
-        ciamAuthorityHost: `${ciamDomain}.ciamlogin.com`,
-        ciamTenantId,
-        clientId: entraClientId,
-        clientSecret: entraClientSecret,
-        accountApiScope: config.accountApiScope,
-        apimApiScope: config.apimApiScope,
-      })
-    : null;
+  const jwtVerifier = new JwtVerifier({
+    jwksUri: `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
+    expectedIssuer: `https://${ciamTenantId}.ciamlogin.com/${ciamTenantId}/v2.0`,
+  });
+
+  const tokenExchanger = new TokenExchanger({
+    ciamAuthorityHost: `${ciamDomain}.ciamlogin.com`,
+    ciamTenantId,
+    clientId: entraClientId,
+    clientSecret: entraClientSecret,
+    accountApiScope: config.accountApiScope,
+    apimApiScope: config.apimApiScope,
+  });
 
   const gatewayApiKeyResolver = new GatewayApiKeyResolver({
     accountApiBaseUrl: config.accountApiBaseUrl,
@@ -206,12 +204,6 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
 
       let resolvedApiKey = apiKey;
       if (resolvedApiKey == null) {
-        if (tokenExchanger == null) {
-          logger.error({ requestId }, "Bearer token received but token exchanger is not configured");
-          res.status(401).end();
-          return;
-        }
-
         const bearerToken = extractBearerToken(req)!;
         const [accountToken, apimToken] = await Promise.all([
           tokenExchanger.exchangeForAccountToken(bearerToken),

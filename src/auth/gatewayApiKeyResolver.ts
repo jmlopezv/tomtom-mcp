@@ -81,28 +81,25 @@ export class GatewayApiKeyResolver {
   }
 
   async resolveApiKey(accountToken: string, apimToken: string): Promise<string | null> {
-    try {
-      const projectId = await this.getProjectId(accountToken);
-      if (projectId == null) {
-        return null;
-      }
-
-      const application = await this.findOrCreateMcpApplication(apimToken, projectId);
-      if (application == null) {
-        return null;
-      }
-
-      const activeCredential = application.credentials.find((c) => c.status);
-      if (activeCredential == null) {
-        logger.error({ applicationId: application.id }, "MCP application has no active credentials");
-        return null;
-      }
-
-      return activeCredential.apiKey;
-    } catch (error) {
-      logger.error({ err: error }, "API key resolution failed");
+    const projectId = await this.getProjectId(accountToken);
+    if (projectId == null) {
+      logger.warn("No projects found for user");
       return null;
     }
+
+    const application = await this.findOrCreateMcpApplication(apimToken, projectId);
+    if (application == null) {
+      logger.error({ projectId }, "Failed to find or create MCP application");
+      return null;
+    }
+
+    const activeCredential = application.credentials.find((c) => c.status);
+    if (activeCredential == null) {
+      logger.error({ applicationId: application.id }, "MCP application has no active credentials");
+      return null;
+    }
+
+    return activeCredential.apiKey;
   }
 
   private async getProjectId(token: string): Promise<string | null> {
@@ -114,7 +111,6 @@ export class GatewayApiKeyResolver {
     );
 
     if (response.projects == null || response.projects.length === 0) {
-      logger.error("No projects found for user");
       return null;
     }
 
