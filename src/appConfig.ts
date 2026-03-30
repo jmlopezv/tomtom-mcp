@@ -54,9 +54,6 @@ export function getAppConfig(env: NodeJS.ProcessEnv = process.env) {
 
     /** TomTom API base URL */
     tomtomApiBaseUrl: env.TOMTOM_API_BASE_URL || "https://api.tomtom.com",
-
-    /** Authorization server URL (fallback when CIAM is not configured) */
-    authorizationServer: env.AUTHORIZATION_SERVER || "https://access.tomtom.com",
   };
 }
 

@@ -44,7 +44,6 @@ export interface HttpServerOptions {
   fixedBackend?: Backend | null;
   defaultBackend?: Backend;
   allowedOrigins?: string;
-  authorizationServer?: string;
 }
 
 export interface HttpServerResult {
@@ -108,7 +107,6 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     fixedBackend = resolveFixedBackend(process.env.MAPS),
     defaultBackend = "tomtom-maps",
     allowedOrigins = appConfig.allowedOrigins,
-    authorizationServer = config.authorizationServer,
   } = options;
   const { ciamTenantId, ciamDomain, entraClientId, entraClientSecret } = config;
   if (!ciamTenantId || !ciamDomain || !entraClientId || !entraClientSecret) {
@@ -256,9 +254,7 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
   app.get(`/${ENDPOINT_OAUTH_PROTECTED_RESOURCE}`, (_req: Request, res: Response) => {
     res.json({
       resource: `${config.baseUrl}/${ENDPOINT_MCP}`,
-      authorization_servers: [ciamDomain
-        ? `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/v2.0`
-        : authorizationServer],
+      authorization_servers: [`https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/v2.0`],
       scopes_supported: SCOPES_SUPPORTED,
     });
   });

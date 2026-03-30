@@ -17,7 +17,6 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 import { logger } from "../utils/logger";
 
-export const JWKS_PATH = "/.well-known/jwks.json";
 const ALLOWED_ALGORITHMS = ["ES256", "RS256"];
 
 export interface JwtVerifierConfig {
@@ -29,14 +28,9 @@ export class JwtVerifier {
   private readonly jwks: JWTVerifyGetKey;
   private readonly expectedIssuer: string;
 
-  constructor(config: string | JwtVerifierConfig) {
-    if (typeof config === "string") {
-      this.jwks = createRemoteJWKSet(new URL(`${config}${JWKS_PATH}`));
-      this.expectedIssuer = `${config}/`;
-    } else {
-      this.jwks = createRemoteJWKSet(new URL(config.jwksUri));
-      this.expectedIssuer = config.expectedIssuer;
-    }
+  constructor(config: JwtVerifierConfig) {
+    this.jwks = createRemoteJWKSet(new URL(config.jwksUri));
+    this.expectedIssuer = config.expectedIssuer;
   }
 
   async verifyBearerToken(token: string | null): Promise<boolean> {

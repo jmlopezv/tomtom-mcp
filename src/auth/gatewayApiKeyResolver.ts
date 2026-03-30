@@ -62,12 +62,12 @@ interface Application {
 }
 
 /**
- * Resolves a TomTom API key by calling the gateway API's gRPC-web endpoints.
+ * Resolves a TomTom API key by calling the CET gateway APIs (Connect-go protocol).
  *
  * Algorithm:
- * 1. List the user's projects → pick the first one
+ * 1. List the user's projects, pick the first one
  * 2. List applications for that project
- * 3. Find an application named "[tomtom-mcp]", or create one
+ * 3. Find an application with displayName "[tomtom-mcp]", or create one
  * 4. Return the API key from its credentials
  */
 export class GatewayApiKeyResolver {
@@ -77,7 +77,6 @@ export class GatewayApiKeyResolver {
   constructor(config: GatewayApiKeyResolverConfig) {
     this.accountApiBaseUrl = config.accountApiBaseUrl;
     this.apimApiBaseUrl = config.apimApiBaseUrl;
-    logger.info("GatewayApiKeyResolver initialized");
   }
 
   async resolveApiKey(accountToken: string, apimToken: string): Promise<string | null> {

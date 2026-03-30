@@ -24,7 +24,6 @@ import {
   makeJwksResponse,
   resolveUrl,
   signTestJwt,
-  TEST_AUTHORIZATION_SERVER,
   TEST_JWKS_URI,
 } from "./authTestUtils";
 
@@ -42,7 +41,6 @@ describe("HTTP Server Integration - Authentication", () => {
       port: TEST_PORT,
       fixedBackend: null,
       defaultBackend: "tomtom-maps",
-      authorizationServer: TEST_AUTHORIZATION_SERVER,
     });
   });
 
