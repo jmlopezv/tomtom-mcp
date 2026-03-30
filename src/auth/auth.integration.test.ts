@@ -116,7 +116,7 @@ function createMockFetch() {
         JSON.stringify({
           applications: [{
             id: "test-app-id",
-            name: "[tomtom-mcp]",
+            name: "TomTom MCP Server",
             credentials: [{ apiKey: "masked-key", status: true }],
             projectId: "test-project-id",
           }],
@@ -129,7 +129,7 @@ function createMockFetch() {
         JSON.stringify({
           application: {
             id: "test-app-id",
-            name: "[tomtom-mcp]",
+            name: "TomTom MCP Server",
             credentials: [{ apiKey: TEST_GATEWAY_API_KEY, status: true }],
             projectId: "test-project-id",
           },

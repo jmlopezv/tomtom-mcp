@@ -16,7 +16,7 @@
 
 import { logger } from "../utils/logger";
 
-const MCP_APPLICATION_NAME = "[tomtom-mcp]";
+const MCP_APPLICATION_NAME = "TomTom MCP Server";
 const MCP_PRODUCTS = [
   { name: "AssetsAPI" },
   { name: "OnlineSearch" },
@@ -67,7 +67,7 @@ interface Application {
  * Algorithm:
  * 1. List the user's projects, pick the first one
  * 2. List applications for that project
- * 3. Find an application with displayName "[tomtom-mcp]", or create one
+ * 3. Find an application with displayName "TomTom MCP Server", or create one
  * 4. Return the API key from its credentials
  */
 export class GatewayApiKeyResolver {
