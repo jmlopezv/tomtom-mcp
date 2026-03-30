@@ -32,6 +32,7 @@ import { runWithSessionContext, setHttpMode } from "./services/base/tomtomClient
 import { readVersion } from "./utils/readVersion";
 import { registerErrorHandlers } from "./utils/uncaughtErrorHandlers";
 import { JwtVerifier } from "./auth/jwtVerifier";
+import { IncorrectError } from "./types/types";
 import { TokenExchanger } from "./auth/tokenExchanger";
 import { GatewayApiKeyResolver } from "./auth/gatewayApiKeyResolver";
 
@@ -109,23 +110,25 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     allowedOrigins = appConfig.allowedOrigins,
   } = options;
   const { ciamTenantId, ciamDomain, entraClientId, entraClientSecret } = config;
-  if (!ciamTenantId || !ciamDomain || !entraClientId || !entraClientSecret) {
-    throw new Error("Missing required env vars: CIAM_TENANT_ID, CIAM_DOMAIN, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET");
-  }
+  const oauthConfigured = !!(ciamTenantId && ciamDomain && entraClientId && entraClientSecret);
 
-  const jwtVerifier = new JwtVerifier({
-    jwksUri: `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
-    expectedIssuer: `https://${ciamTenantId}.ciamlogin.com/${ciamTenantId}/v2.0`,
-  });
+  const jwtVerifier = oauthConfigured
+    ? new JwtVerifier({
+        jwksUri: `https://${ciamDomain}.ciamlogin.com/${ciamTenantId}/discovery/v2.0/keys`,
+        expectedIssuer: `https://${ciamTenantId}.ciamlogin.com/${ciamTenantId}/v2.0`,
+      })
+    : null;
 
-  const tokenExchanger = new TokenExchanger({
-    ciamAuthorityHost: `${ciamDomain}.ciamlogin.com`,
-    ciamTenantId,
-    clientId: entraClientId,
-    clientSecret: entraClientSecret,
-    accountApiScope: config.accountApiScope,
-    apimApiScope: config.apimApiScope,
-  });
+  const tokenExchanger = oauthConfigured
+    ? new TokenExchanger({
+        ciamAuthorityHost: `${ciamDomain}.ciamlogin.com`,
+        ciamTenantId,
+        clientId: entraClientId,
+        clientSecret: entraClientSecret,
+        accountApiScope: config.accountApiScope,
+        apimApiScope: config.apimApiScope,
+      })
+    : null;
 
   const gatewayApiKeyResolver = new GatewayApiKeyResolver({
     accountApiBaseUrl: config.accountApiBaseUrl,
@@ -174,9 +177,16 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
     const requestId = randomUUID();
     const apiKey = extractApiKey(req);
     try {
-      if (apiKey == null && !(await jwtVerifier.verifyBearerToken(extractBearerToken(req)))) {
-        res.status(401).end();
-        return;
+      if (apiKey == null) {
+        if (!oauthConfigured) {
+          throw new IncorrectError("OAuth is not configured", {
+            missingEnvVars: "CIAM_TENANT_ID, CIAM_DOMAIN, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET",
+          });
+        }
+        if (!(await jwtVerifier!.verifyBearerToken(extractBearerToken(req)))) {
+          res.status(401).end();
+          return;
+        }
       }
 
       const backend = getBackend(req);
@@ -204,8 +214,8 @@ export async function createHttpServer(options: HttpServerOptions = {}): Promise
       if (resolvedApiKey == null) {
         const bearerToken = extractBearerToken(req)!;
         const [accountToken, apimToken] = await Promise.all([
-          tokenExchanger.exchangeForAccountToken(bearerToken),
-          tokenExchanger.exchangeForApimToken(bearerToken),
+          tokenExchanger!.exchangeForAccountToken(bearerToken),
+          tokenExchanger!.exchangeForApimToken(bearerToken),
         ]);
         if (accountToken == null || apimToken == null) {
           res.status(401).end();
