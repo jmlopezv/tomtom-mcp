@@ -175,11 +175,9 @@ export class GatewayApiKeyResolver {
     });
 
     if (!response.ok) {
-      const responseBody = await response.text().catch(() => "");
       throw new FaultError("Gateway API request failed", {
         status: response.status,
-        url,
-        responseBody,
+        url
       });
     }
 
